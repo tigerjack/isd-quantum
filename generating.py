@@ -17,14 +17,11 @@ def permutation(n, r):
 
     # The idea is to carry around the computation on nn registers and then
     # copy the results in the n registers
-    computing_q = QuantumRegister(nn)
-    ancilla_flip_q = QuantumRegister(1)
-    ancilla_flip_c = ClassicalRegister(1)
-    ancillas_res_q = QuantumRegister(n)
-    ancillas_res_c = ClassicalRegister(n)
+    computing_q = QuantumRegister(nn, 'q-com')
+    ancilla_flip_q = QuantumRegister(1, 'q-ancf')
+    ancilla_flip_c = ClassicalRegister(1, 'c-ancf')
 
-    circuit = QuantumCircuit(computing_q, ancilla_flip_q, ancillas_res_q,
-                             ancillas_res_c, ancilla_flip_c)
+    circuit = QuantumCircuit(computing_q, ancilla_flip_q, ancilla_flip_c)
 
     # Initialize r bits to 1, all the others to 0
     for i in range(r):
@@ -90,19 +87,64 @@ def permutation(n, r):
         circuit.measure(ancilla_flip_q, ancilla_flip_c)
         circuit.h(ancilla_flip_q)
     print("*******")
-    circuit.reset(ancilla_flip_q)
     circuit.barrier()
 
-    # Then, bcz we only want 7 outputs, we copy the first 7 qubits
+    # Two different ideas
+    # IDEA 1
+    # Bcz we only want 7 outputs out of 8, we copy the first 7 qubits
     # but only if the 8th qubit is 0.
     # In other words, we don't want to copy the results w/a 1 in the
-    # 8th position
+    # 8th position.
+    # One potential problem here is that ~1/8 of the results will be
+    # all zeros; however, given that this results are selection lines,
+    # maybe can be easily wrapped around.
+    # Another great problem is that there are more qubits (+n) and
+    # gates, so the computation is very slow.
     # TODO generalize
-    circuit.x(computing_q[nn - 1])
-    for i in range(n):
-        circuit.ccx(computing_q[nn - 1], computing_q[i], ancillas_res_q[i])
+    # TODO maybe we can using a sort of Grover's algorithm to diminish
+    # the amplitude on state 0000'0000
 
-    circuit.measure(ancillas_res_q, ancillas_res_c)
+    # ancillas_res_q = QuantumRegister(n)
+    # ancillas_res_c = ClassicalRegister(n)
+    # circuit.add(ancilla_res_q)
+    # circuit.add(ancilla_res_c)
+    # circuit.x(computing_q[nn - 1])
+    # for i in range(n):
+    #     circuit.ccx(computing_q[nn - 1], computing_q[i], ancillas_res_q[i])
+
+    # circuit.measure(ancillas_res_q, ancillas_res_c)
+    # circuit.reset(ancilla_flip_q)
+    # circuit.measure(ancilla_flip_q, ancilla_flip_c)
+    # return circuit
+
+    # IDEA2
+    # Here instead the idea is to apply a cswap b/w the last bit and the first non zero
+    # but only when the last bit is one.
+    # The problem here is that the probabilities are not random anymore.
+    # The advantage is that it is faster.
+
+    # We first copy the last bit in ancilla_flip_q
+    ancilla_one_q = QuantumRegister(1, 'q-ancone')
+    circuit.add(ancilla_one_q)
+
+    # Then if ancilla_flip is 1 (and so also ancilla_res[nn-1])
+    # we swap this last qubit with the first non zero
+    # Worst case 0000'0111
+    for i in range(nn - r):
+        circuit.reset(ancilla_flip_q)
+        circuit.x(ancilla_one_q)
+        circuit.ccx(ancilla_one_q[0], computing_q[nn - 1], ancilla_flip_q[0])
+        circuit.cswap(ancilla_flip_q[0], computing_q[nn - 1], computing_q[i])
+        circuit.barrier()
+
+    computing_c = ClassicalRegister(n, 'c-com')
+    circuit.add(computing_c)
+
+    for i in range(n):
+        circuit.measure(computing_q[i], computing_c[i])
+
+    circuit.reset(ancilla_flip_q)
+    circuit.measure(ancilla_flip_q, ancilla_flip_c)
     return circuit
 
 
