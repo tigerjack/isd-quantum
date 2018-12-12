@@ -355,7 +355,7 @@ def permutation_9(qr, qc, n):
         qc.measure(ancillas, ancillas_c)
         qc.h(ancillas)
     print("*******")
-    qc.measure(ancillas, ancillas_c)
+    qc.reset(ancillas)
     qc.barrier()
 
     qc.measure(qr, cr)
