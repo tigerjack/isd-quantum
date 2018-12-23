@@ -52,8 +52,9 @@ def permutation_support(circuit, selectors_q, flip_q, ancilla_used, start, end,
         _logger.debug("Permutation support -> Base case recursion")
         return ancilla_used
     for i in range(start, int((start + end) / 2)):
-        _logger.debug("Permutation support -> Cswapping {0} w/ {1}".format(
-            i, i + swap_step))
+        _logger.debug(
+            "Permutation support -> Cswapping {0} & {1} using hadamard {2}".
+            format(i, i + swap_step, ancilla_used))
         circuit.cswap(flip_q[ancilla_used], selectors_q[i],
                       selectors_q[i + swap_step])
         ancilla_used += 1
@@ -82,10 +83,9 @@ def permutation_i(circuit, selectors_q, flip_q):
     ancilla_counter = len(flip_q)
     _logger.debug("Permutation_i -> Number of hadamard qubits is {0}".format(
         ancilla_counter))
-    ancilla_used = n - 1
 
-    permutation_support_i(circuit, selectors_q, flip_q, ancilla_used, 0, n,
-                          int(n / 2))
+    permutation_support_i(circuit, selectors_q, flip_q, ancilla_counter - 1, 0,
+                          n, int(n / 2))
     # Hadamard all ancillas
     circuit.h(flip_q)
     circuit.barrier()
@@ -99,28 +99,29 @@ def permutation_support_i(circuit, selectors_q, flip_q, ancilla_used, start,
     if (swap_step == 0 or start >= end):
         _logger.debug("Permutation support_i -> Base case recursion")
         return ancilla_used
-    _logger.debug("Permutation support_i -> Ancilla used after FOR {0}".format(
-        ancilla_used))
-    ancilla_used = permutation_support_i(circuit, selectors_q, flip_q,
-                                         ancilla_used, start,
-                                         int((start + end) / 2),
-                                         int(swap_step / 2))
-    _logger.debug(
-        "Permutation support_i -> Ancilla used after FIRST recursion {0}".
-        format(ancilla_used))
     ancilla_used = permutation_support_i(circuit, selectors_q,
                                          flip_q, ancilla_used,
                                          int((start + end) / 2), end,
                                          int(swap_step / 2))
     _logger.debug(
+        "Permutation support_i -> Ancilla used after FIRST recursion {0}".
+        format(ancilla_used))
+    ancilla_used = permutation_support_i(circuit, selectors_q, flip_q,
+                                         ancilla_used, start,
+                                         int((start + end) / 2),
+                                         int(swap_step / 2))
+    _logger.debug(
         "Permutation support_i -> Ancilla used after SECOND recursion {0}".
         format(ancilla_used))
     for i in range(int((start + end) / 2) - 1, start - 1, -1):
-        _logger.debug("Permutation support_i -> Cswapping {0} w/ {1}".format(
-            i, i + swap_step))
+        _logger.debug(
+            "Permutation support_i -> Cswapping {0} & {1} using hadamard {2}".
+            format(i, i + swap_step, ancilla_used))
         circuit.cswap(flip_q[ancilla_used], selectors_q[i],
                       selectors_q[i + swap_step])
         ancilla_used -= 1
+    _logger.debug("Permutation support_i -> Ancilla used after FOR {0}".format(
+        ancilla_used))
     return ancilla_used
 
 
@@ -182,7 +183,7 @@ def inversion_about_zero(qc, pseudo_control_register, inversion_qubit,
         qc, pseudo_control_register, ancillas_inversion)
 
     qc.cz(single_control_inversion, inversion_qubit)
-    # TODO uncompute
+
     composed_gates.n_control_uncompute(qc, pseudo_control_register,
                                        ancillas_inversion)
 
@@ -191,6 +192,88 @@ def inversion_about_zero(qc, pseudo_control_register, inversion_qubit,
         qc.x(qubit)
     qc.barrier()
     return single_control_inversion, ancillas_inversion
+
+
+# n is the original set of registers
+# A.T.M. works only w/ n = to a power of 2
+def permutation_old(circuit, selectors_q, flip_q):
+    n = len(selectors_q)
+    _logger.debug("Permutation input n is {0}".format(n))
+    ancilla_counter = int(log(n, 2)) * int(n / 2)
+    if flip_q is None:
+        flip_q = QuantumRegister(ancilla_counter)
+        circuit.add(flip_q)
+
+    # Hadamard all ancillas
+    circuit.h(flip_q)
+    circuit.barrier()
+
+    for i in range(0, n - int(n / 2), 1):
+        ancilla_counter -= 1
+        print("cswapping {0} {1}".format(i, i + n / 2))
+        circuit.cswap(flip_q[ancilla_counter], selectors_q[i],
+                      selectors_q[i + int(n / 2)])
+    print("*******")
+    circuit.barrier()
+
+    for i in range(0, n - int(n / 4), int(n / 2)):
+        ancilla_counter -= 1
+        print("cswapping {0} {1}".format(i, i + n / 4))
+        circuit.cswap(flip_q[ancilla_counter], selectors_q[i],
+                      selectors_q[i + int(n / 4)])
+        ancilla_counter -= 1
+        print("cswapping {0} {1}".format(i + 1, i + 1 + int(n / 4)))
+        circuit.cswap(flip_q[ancilla_counter], selectors_q[i + 1],
+                      selectors_q[i + 1 + int(n / 4)])
+    print("*******")
+    circuit.barrier()
+
+    # for i in range(0, n - int(n / 8), int(n / 4)):
+    #     ancilla_counter -= 1
+    #     print("cswapping {0} {1}".format(i, i + 1))
+    #     circuit.cswap(flip_q[ancilla_counter], selectors_q[i],
+    #                   selectors_q[i + 1])
+    print("*******")
+    circuit.barrier()
+    return flip_q
+
+
+def permutation_old_i(circuit, selectors_q, flip_q):
+    n = len(selectors_q)
+    _logger.debug("Permutation input n is {0}".format(n))
+    ancilla_counter = 0
+
+    # for i in range(n - int(n / 8) - 1, -1, -int(n / 4)):
+    #     print("cswapping {0} {1}".format(i, i + 1))
+    #     circuit.cswap(flip_q[ancilla_counter], selectors_q[i],
+    #                   selectors_q[i + 1])
+    #     ancilla_counter += 1
+    # print("*******")
+
+    for i in range(n - int(n / 4) - 1, -1, -int(n / 2)):
+        print("cswapping {0} {1}".format(i, i + n / 4))
+        circuit.cswap(flip_q[ancilla_counter], selectors_q[i],
+                      selectors_q[i + int(n / 4)])
+        ancilla_counter += 1
+        print("cswapping {0} {1}".format(i + 1, i + 1 + int(n / 4)))
+        circuit.cswap(flip_q[ancilla_counter], selectors_q[i + 1],
+                      selectors_q[i + 1 + int(n / 4)])
+        ancilla_counter += 1
+
+    for i in range(n - int(n / 2) - 1, -1, -1):
+        print("cswapping {0} {1}".format(i, i + n / 2))
+        circuit.cswap(flip_q[ancilla_counter], selectors_q[i],
+                      selectors_q[i + int(n / 2)])
+        ancilla_counter += 1
+    print("*******")
+    circuit.barrier()
+
+    print("*******")
+    circuit.barrier()
+
+    circuit.barrier()
+    circuit.h(flip_q)
+    circuit.barrier()
 
 
 def main():
@@ -206,8 +289,8 @@ def main():
     h4 = np.array([[1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]).T
     syndromes4 = np.array([[0, 1, 0], [1, 1, 1], [1, 0, 0], [0, 0, 1]])
 
-    h = h4
-    syndromes = syndromes4
+    h = h8
+    syndromes = syndromes7
 
     w = 1
     r = h.shape[0]
@@ -220,6 +303,7 @@ def main():
     qc, selectors_q = initialize_circuit(n)
     n_choose_w(qc, selectors_q, w)
     flip_q = permutation(qc, selectors_q, None)
+    # flip_q = permutation_old(qc, selectors_q, None)
     sum_q = matrix2gates(qc, h, selectors_q, None)
     syndrome2gates(qc, sum_q, syndrome)
 
@@ -235,6 +319,7 @@ def main():
     syndrome2gates(qc, sum_q, syndrome)
     matrix2gates_i(qc, h, selectors_q, sum_q)
     permutation_i(qc, selectors_q, flip_q)
+    # permutation_old_i(qc, selectors_q, flip_q)
     n_choose_w(qc, selectors_q, w)
 
     pseudo_control_inversion.add_registers(selectors_q, flip_q)
@@ -245,8 +330,9 @@ def main():
 
     n_choose_w(qc, selectors_q, w)
     permutation(qc, selectors_q, flip_q)
-    # matrix2gates(qc, h, selectors_q, sum_q)
-    # syndrome2gates(qc, sum_q, syndrome)
+    # Stop here for the real result
+    matrix2gates(qc, h, selectors_q, sum_q)
+    syndrome2gates(qc, sum_q, syndrome)
 
     for i in range(0):
         _logger.debug("ITERATION {0}".format(i))
@@ -264,54 +350,22 @@ def main():
         matrix2gates(qc, h, selectors_q, sum_q)
         syndrome2gates(qc, sum_q, syndrome)
 
-    # for i in range(2):
-    #     _logger.debug("Iteration {0}".format(i))
-    #     if pseudo_target_oracle is None:
-    #         pseudo_target_oracle = pse.PseudoQuantumRegister('oracle_targets')
-    #         pseudo_target_oracle.add_registers(selectors_q, flip_q)
-    #     single_control_sum, ancillas_control_sum = oracle(
-    #         qc, sum_q, pseudo_target_oracle, ancillas_control_sum)
-    #     if pseudo_ancillas is None:
-    #         pseudo_ancillas.add(ancillas_control_sum)
-
-    #     syndrome2gates(qc, sum_q, syndrome)
-    #     matrix2gates_i(qc, h, selectors_q, sum_q)
-    #     permutation_i(qc, selectors_q, flip_q)
-    #     n_choose_w(qc, selectors_q, w)
-
-    #     if pseudo_control_inversion is None:
-    #         pseudo_control_inversion = pse.PseudoQuantumRegister(
-    #             'inversion_controls')
-    #         pseudo_control_inversion.add_registers(selectors_q, flip_q)
-    #         pseudo_control_inversion.add_qubits(single_control_sum)
-
-    #     single_control_inversion, ancillas_inversion = inversion_about_zero(
-    #         qc, pseudo_control_inversion, selectors_q[0], ancillas_inversion)
-
-    #     n_choose_w(qc, selectors_q, w)
-    #     permutation(qc, selectors_q, flip_q)
-    #     matrix2gates(qc, h, selectors_q, sum_q)
-    #     syndrome2gates(qc, sum_q, syndrome)
-
     from os import sys
     # 1 online simulator, 0 local simulator, 2
     backend_choice = int(sys.argv[1])
     # 1 draw, 0 not draw
     draw = int(sys.argv[2])
 
-    if (draw == 1):
-        print("Drawing")
-        from qiskit.tools.visualization import circuit_drawer
-        circuit_drawer(qc, filename='img/grovering.png')
-
     # 2 should be statevector
     if (backend_choice == 0):
+        print("Backend offline")
         cr = ClassicalRegister(n, 'cols')
         qc.add_register(cr)
         qc.measure(selectors_q, cr)
         from qiskit import Aer
         backend = Aer.get_backend('qasm_simulator')
     elif (backend_choice == 1):
+        print("Backend online")
         cr = ClassicalRegister(n, 'cols')
         qc.add_register(cr)
         qc.measure(selectors_q, cr)
@@ -319,8 +373,14 @@ def main():
         IBMQ.load_accounts()
         backend = IBMQ.get_backend('ibmq_qasm_simulator')
     elif (backend_choice == 2):
+        print("Backend statevector")
         from qiskit import Aer
         backend = Aer.get_backend('statevector_simulator')
+
+    if (draw == 1):
+        print("Drawing")
+        from qiskit.tools.visualization import circuit_drawer
+        circuit_drawer(qc, filename='img/grovering.png')
 
     print("Preparing execution")
     from qiskit import execute
@@ -357,45 +417,3 @@ _logger.addHandler(_handler)
 _logger.setLevel(logging.DEBUG)
 if __name__ == "__main__":
     main()
-
-# n is the original set of registers
-# A.T.M. works only w/ n = to a power of 2
-# def permutation_old(circuit, computing_q):
-#     n = len(computing_q)
-#     _logger.debug("Permutation input n is {0}".format(n))
-#     ancilla_counter = int(log(n, 2)) * int(n / 2)
-#     flip_q = QuantumRegister(ancilla_counter)
-#     circuit.add(flip_q)
-
-#     # Hadamard all ancillas
-#     circuit.h(flip_q)
-#     circuit.barrier()
-
-#     for i in range(0, n - int(n / 2), 1):
-#         ancilla_counter -= 1
-#         print("cswapping {0} {1}".format(i, i + n / 2))
-#         circuit.cswap(flip_q[ancilla_counter], computing_q[i],
-#                       computing_q[i + int(n / 2)])
-#     print("*******")
-#     circuit.barrier()
-
-#     for i in range(0, n - int(n / 4), int(n / 2)):
-#         ancilla_counter -= 1
-#         print("cswapping {0} {1}".format(i, i + n / 4))
-#         circuit.cswap(flip_q[ancilla_counter], computing_q[i],
-#                       computing_q[i + int(n / 4)])
-#         ancilla_counter -= 1
-#         print("cswapping {0} {1}".format(i + 1, i + 1 + int(n / 4)))
-#         circuit.cswap(flip_q[ancilla_counter], computing_q[i + 1],
-#                       computing_q[i + 1 + int(n / 4)])
-#     print("*******")
-#     circuit.barrier()
-
-#     for i in range(0, n - int(n / 8), int(n / 4)):
-#         ancilla_counter -= 1
-#         print("cswapping {0} {1}".format(i, i + 1))
-#         circuit.cswap(flip_q[ancilla_counter], computing_q[i],
-#                       computing_q[i + 1])
-#     print("*******")
-#     circuit.barrier()
-#     return flip_q
