@@ -167,16 +167,19 @@ def oracle(qc, sum_q, pseudo_target, anc):
     m = len(pseudo_target)
     for i in range(m):
         qc.cz(single_control, pseudo_target[i])
+    composed_gates.n_control_uncompute(qc, sum_q, anc)
     return single_control
+
+
+def negate_for_inversion(qc, *registers):
+    for register in registers:
+        qc.x(register)
 
 
 # single control sum is not a QuantumRegister, but a qubit
 def inversion_about_zero(qc, pseudo_control_register, inversion_qubit,
                          ancillas_inversion):
     _logger.debug("inversion_about_zero -> initializing")
-    qc.barrier()
-    for qubit in pseudo_control_register:
-        qc.x(qubit)
     qc.barrier()
 
     single_control_inversion = composed_gates.n_control_compute(
@@ -187,9 +190,6 @@ def inversion_about_zero(qc, pseudo_control_register, inversion_qubit,
     composed_gates.n_control_uncompute(qc, pseudo_control_register,
                                        ancillas_inversion)
 
-    qc.barrier()
-    for qubit in pseudo_control_register:
-        qc.x(qubit)
     qc.barrier()
     return single_control_inversion, ancillas_inversion
 
@@ -289,8 +289,8 @@ def main():
     h4 = np.array([[1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]).T
     syndromes4 = np.array([[0, 1, 0], [1, 1, 1], [1, 0, 0], [0, 0, 1]])
 
-    h = h8
-    syndromes = syndromes7
+    h = h4
+    syndromes = syndromes4
 
     w = 1
     r = h.shape[0]
@@ -325,30 +325,33 @@ def main():
     pseudo_control_inversion.add_registers(selectors_q, flip_q)
     pseudo_control_inversion.add_qubits(single_control_sum)
 
+    negate_for_inversion(qc, selectors_q, flip_q)
     single_control_inversion = inversion_about_zero(
         qc, pseudo_control_inversion, selectors_q[0], pseudo_ancilla_register)
+    negate_for_inversion(qc, selectors_q, flip_q)
 
     n_choose_w(qc, selectors_q, w)
     permutation(qc, selectors_q, flip_q)
-    # Stop here for the real result
-    matrix2gates(qc, h, selectors_q, sum_q)
-    syndrome2gates(qc, sum_q, syndrome)
-
-    for i in range(0):
+    rounds = int(round((pi / 2 * sqrt(n) - 1) / 2))
+    _logger.debug("{0} rounds required".format(rounds - 1))
+    for i in range(rounds - 1):
         _logger.debug("ITERATION {0}".format(i))
+        matrix2gates(qc, h, selectors_q, sum_q)
+        syndrome2gates(qc, sum_q, syndrome)
+
         oracle(qc, sum_q, pseudo_target_oracle, pseudo_ancilla_register)
         syndrome2gates(qc, sum_q, syndrome)
         matrix2gates_i(qc, h, selectors_q, sum_q)
         permutation_i(qc, selectors_q, flip_q)
         n_choose_w(qc, selectors_q, w)
 
+        negate_for_inversion(qc, selectors_q, flip_q)
         inversion_about_zero(qc, pseudo_control_inversion, selectors_q[0],
                              pseudo_ancilla_register)
+        negate_for_inversion(qc, selectors_q, flip_q)
 
         n_choose_w(qc, selectors_q, w)
         permutation(qc, selectors_q, flip_q)
-        matrix2gates(qc, h, selectors_q, sum_q)
-        syndrome2gates(qc, sum_q, syndrome)
 
     from os import sys
     # 1 online simulator, 0 local simulator, 2
