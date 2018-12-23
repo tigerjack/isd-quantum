@@ -5,8 +5,27 @@ import logging
 import composed_gates
 import pseudoquantumregister as pse
 
+_logger = logging.getLogger(__name__)
+_handler = logging.StreamHandler()
+_formatter = logging.Formatter(
+    '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+_handler.setFormatter(_formatter)
+if (_logger.hasHandlers()):
+    _logger.handlers.clear()
+_logger.addHandler(_handler)
+_logger.setLevel(logging.DEBUG)
+draw_circuit = False
+
 
 def initialize_circuit(n):
+    """
+    Initialize the circuit with n qubits. The n is the same n of the H parity matrix and it is used to represent the choice of the column of the matrix.
+
+    :param n: The number of qubits
+    :returns: the quantum circuit and the selectors_q register
+    :rtype:
+
+    """
     _logger.debug(
         "initialize_circuit -> creating n = {0} qubits for selection".format(
             n))
@@ -17,6 +36,15 @@ def initialize_circuit(n):
 
 
 def n_choose_w(circuit, selectors_q, w):
+    """
+    Given the n selectors_q QuantumRegister, initialize w qubits to 1. w is the weight of the error.
+
+    :param circuit: the quantum circuit
+    :param selectors_q: the QuantumRegister representing the n columns selectors
+    :param w: the error weight
+    :returns: None
+
+    """
     _logger.debug("n_choose_w -> initializing {0} qubits to 1".format(w))
     # Initialize 2 bits to 1, all the others to 0
     for i in range(w):
@@ -277,6 +305,19 @@ def permutation_old_i(circuit, selectors_q, flip_q):
 
 
 def main():
+    global draw_circuit
+    from os import sys
+    # 1 online simulator, 0 local simulator, 2
+    backend_choice = int(sys.argv[1])
+    # 1 draw, 0 not draw
+    draw = int(sys.argv[2])
+    if (draw == 1):
+        # print("Drawing")
+        draw_circuit = True
+        from qiskit.tools.visualization import circuit_drawer
+        # circuit_drawer(qc, filename='img/grovering.png', output='latex')
+        # circuit_drawer(qc, output="text")
+
     h8 = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 0], [0, 1, 1], [1, 0, 0],
                    [0, 1, 0], [0, 0, 1], [1, 0, 1]]).T
     syndromes7 = np.array([[0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 0, 0],
@@ -289,8 +330,8 @@ def main():
     h4 = np.array([[1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]).T
     syndromes4 = np.array([[0, 1, 0], [1, 1, 1], [1, 0, 0], [0, 0, 1]])
 
-    h = h4
-    syndromes = syndromes4
+    h = h8
+    syndromes = syndromes7
 
     w = 1
     r = h.shape[0]
@@ -302,10 +343,20 @@ def main():
 
     qc, selectors_q = initialize_circuit(n)
     n_choose_w(qc, selectors_q, w)
+    if draw_circuit:
+        circuit_drawer(
+            qc, filename='img/grovering_nchoosew.png', output='latex')
+
     flip_q = permutation(qc, selectors_q, None)
+    if draw_circuit:
+        circuit_drawer(
+            qc, filename='img/grovering_permutation.png', output='latex')
     # flip_q = permutation_old(qc, selectors_q, None)
     sum_q = matrix2gates(qc, h, selectors_q, None)
     syndrome2gates(qc, sum_q, syndrome)
+    if draw_circuit:
+        circuit_drawer(
+            qc, filename='img/grovering_matrix_syndrome.png', output='latex')
 
     pseudo_ancilla_register = pse.PseudoQuantumRegister()
     pseudo_target_oracle = pse.PseudoQuantumRegister('oracle_targets')
@@ -315,12 +366,20 @@ def main():
     pseudo_target_oracle.add_registers(selectors_q, flip_q)
     single_control_sum = oracle(qc, sum_q, pseudo_target_oracle,
                                 pseudo_ancilla_register)
+    if draw_circuit:
+        circuit_drawer(qc, filename='img/grovering_oracle.png', output='latex')
 
     syndrome2gates(qc, sum_q, syndrome)
     matrix2gates_i(qc, h, selectors_q, sum_q)
+    if draw_circuit:
+        circuit_drawer(
+            qc, filename='img/grovering_matrix_syndrome_i.png', output='latex')
     permutation_i(qc, selectors_q, flip_q)
     # permutation_old_i(qc, selectors_q, flip_q)
     n_choose_w(qc, selectors_q, w)
+    if draw_circuit:
+        circuit_drawer(
+            qc, filename='img/grovering_permutation_i.png', output='latex')
 
     pseudo_control_inversion.add_registers(selectors_q, flip_q)
     pseudo_control_inversion.add_qubits(single_control_sum)
@@ -329,6 +388,9 @@ def main():
     single_control_inversion = inversion_about_zero(
         qc, pseudo_control_inversion, selectors_q[0], pseudo_ancilla_register)
     negate_for_inversion(qc, selectors_q, flip_q)
+    if draw_circuit:
+        circuit_drawer(
+            qc, filename='img/grovering_inversion.png', output='latex')
 
     n_choose_w(qc, selectors_q, w)
     permutation(qc, selectors_q, flip_q)
@@ -353,12 +415,6 @@ def main():
         n_choose_w(qc, selectors_q, w)
         permutation(qc, selectors_q, flip_q)
 
-    from os import sys
-    # 1 online simulator, 0 local simulator, 2
-    backend_choice = int(sys.argv[1])
-    # 1 draw, 0 not draw
-    draw = int(sys.argv[2])
-
     # 2 should be statevector
     if (backend_choice == 0):
         print("Backend offline")
@@ -379,11 +435,6 @@ def main():
         print("Backend statevector")
         from qiskit import Aer
         backend = Aer.get_backend('statevector_simulator')
-
-    if (draw == 1):
-        print("Drawing")
-        from qiskit.tools.visualization import circuit_drawer
-        circuit_drawer(qc, filename='img/grovering.png')
 
     print("Preparing execution")
     from qiskit import execute
@@ -409,14 +460,5 @@ def main():
     plot_histogram(to_plot)
 
 
-_logger = logging.getLogger(__name__)
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter(
-    '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-_handler.setFormatter(_formatter)
-if (_logger.hasHandlers()):
-    _logger.handlers.clear()
-_logger.addHandler(_handler)
-_logger.setLevel(logging.DEBUG)
 if __name__ == "__main__":
     main()
