@@ -7,7 +7,7 @@ def usage():
         'r',
         metavar='r',
         type=int,
-        help='the r (= n - k) of the parity matrix H.')
+        help='the r (== n - k) of the parity matrix H.')
     parser.add_argument(
         '-r',
         '--real',
@@ -135,9 +135,9 @@ def run(qc, selectors_q, args):
 
 
 def load_modules():
-    global logging, prange_isd, _logger
+    print("Loading modules")
+    global logging, _logger
     import logging
-    import prange_isd
     _logger = logging.getLogger(__name__)
     _handler = logging.StreamHandler()
     _formatter = logging.Formatter(
@@ -147,6 +147,13 @@ def load_modules():
         _logger.handlers.clear()
         _logger.addHandler(_handler)
     _logger.setLevel(logging.DEBUG)
+    import os
+    import sys
+    sys.path.insert(
+        0, os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', 'src')))
+    global prange_isd
+    import prange_isd
 
 
 def main():
