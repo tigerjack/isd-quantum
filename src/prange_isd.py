@@ -225,49 +225,34 @@ def inversion_about_zero(qc, pseudo_control_register, inversion_qubit,
 
 
 # param is a dictionary containing n, r, partial_drawing and img_dir
-def build_circuit(h, syndrome, w, partial_drawing=False, img_dir=None):
+def build_circuit(h, syndrome, w, measures):
     n = h.shape[1]
     r = h.shape[0]
-    _logger.debug("n: {0}, r: {1}, partial_drawing: {2}, img_dir: {3}".format(
-        n, r, partial_drawing, img_dir))
+    _logger.debug(
+        "n: {0}, r: {1}, w: {2}, syndrome: {3}, measures: {4}".format(
+            n, r, w, syndrome, measures))
 
     qc, selectors_q = initialize_circuit(n)
     n_choose_w(qc, selectors_q, w)
-    if partial_drawing:
-        circuit_drawer(
-            qc, filename='img/grovering_nchoosew.png', output='latex')
 
     flip_q = permutation(qc, selectors_q, None)
-    if partial_drawing:
-        circuit_drawer(
-            qc, filename='img/grovering_permutation.png', output='latex')
+
+    # First grover, to initialize everything
     sum_q = matrix2gates(qc, h, selectors_q, None)
     syndrome2gates(qc, sum_q, syndrome)
-    if partial_drawing:
-        circuit_drawer(
-            qc, filename='img/grovering_matrix_syndrome.png', output='latex')
 
     pseudo_ancilla_register = pse.PseudoQuantumRegister()
     pseudo_target_oracle = pse.PseudoQuantumRegister('oracle_targets')
     pseudo_control_inversion = pse.PseudoQuantumRegister('inversion_controls')
-
-    # First grover, to initialize everything
     pseudo_target_oracle.add_registers(selectors_q, flip_q)
     single_control_sum = oracle(qc, sum_q, pseudo_target_oracle,
                                 pseudo_ancilla_register)
-    if partial_drawing:
-        circuit_drawer(qc, filename='img/grovering_oracle.png', output='latex')
 
     syndrome2gates(qc, sum_q, syndrome)
     matrix2gates_i(qc, h, selectors_q, sum_q)
-    if partial_drawing:
-        circuit_drawer(
-            qc, filename='img/grovering_matrix_syndrome_i.png', output='latex')
+
     permutation_i(qc, selectors_q, flip_q)
     n_choose_w(qc, selectors_q, w)
-    if partial_drawing:
-        circuit_drawer(
-            qc, filename='img/grovering_permutation_i.png', output='latex')
 
     pseudo_control_inversion.add_registers(selectors_q, flip_q)
     pseudo_control_inversion.add_qubits(single_control_sum)
@@ -276,9 +261,6 @@ def build_circuit(h, syndrome, w, partial_drawing=False, img_dir=None):
     single_control_inversion = inversion_about_zero(
         qc, pseudo_control_inversion, selectors_q[0], pseudo_ancilla_register)
     negate_for_inversion(qc, selectors_q, flip_q)
-    if partial_drawing:
-        circuit_drawer(
-            qc, filename='img/grovering_inversion.png', output='latex')
 
     n_choose_w(qc, selectors_q, w)
     permutation(qc, selectors_q, flip_q)
@@ -304,5 +286,11 @@ def build_circuit(h, syndrome, w, partial_drawing=False, img_dir=None):
 
         n_choose_w(qc, selectors_q, w)
         permutation(qc, selectors_q, flip_q)
+
+    if measures:
+        from qiskit import ClassicalRegister, QuantumCircuit
+        cr = ClassicalRegister(n, 'cols')
+        qc.add_register(cr)
+        qc.measure(selectors_q, cr)
 
     return qc, selectors_q

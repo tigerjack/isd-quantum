@@ -27,16 +27,6 @@ def usage():
         "The name of the backend. At the moment, the available local backends are: qasm_simulator, statevector_simulator and unitary_simulator."
     )
     parser.add_argument(
-        '-pd',
-        '--partial_drawing',
-        action='store_true',
-        help='Draw the incremental images of the circuit')
-    parser.add_argument(
-        '-td',
-        '--total_drawing',
-        action='store_true',
-        help='Draw the final image of the circuit')
-    parser.add_argument(
         '--img_dir',
         help=
         'If you want to store the image of the circuit, you need to specify the directory.'
@@ -76,24 +66,45 @@ def get_sample_matrix_and_random_syndrome(n, r):
     return h, syndromes[np.random.randint(syndromes.shape[0])]
 
 
-def run(qc, selectors_q, args):
+def run(qc, backend):
+    _logger.debug("Preparing execution")
+    from qiskit import execute
+    _logger.debug("Execute")
+    job = execute(qc, backend, shots=4098)
+    _logger.debug(job.job_id())
+    result = job.result()
+    _logger.debug("Results ready")
+    return result
+
+
+def load_modules():
+    global logging, _logger
+    import logging
+    _logger = logging.getLogger(__name__)
+    _handler = logging.StreamHandler()
+    _formatter = logging.Formatter(
+        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    _handler.setFormatter(_formatter)
+    if (_logger.hasHandlers()):
+        _logger.handlers.clear()
+        _logger.addHandler(_handler)
+    _logger.setLevel(logging.DEBUG)
+    import os
+    import sys
+    sys.path.insert(
+        0, os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', 'src')))
+    _logger.debug("Loading prange isd")
+    global prange_isd
+    import prange_isd
+
+
+def get_backend(args):
     real = args.real
     online = True if real else args.online
-    total_drawing = args.total_drawing
-    img_dir = args.img_dir
-    plot = args.plot
     backend_name = args.backend_name
-    need_measures = True
-    _logger.debug(
-        "real: {0}, online: {1}, total_drawing: {2}, img_dir: {3}, plot: {4}, backend_name: {5}"
-        .format(real, online, total_drawing, img_dir, plot, backend_name))
-    if (backend_name not in ('statevector_simulator', 'unitary_simulator')):
-        _logger.debug("Adding measures")
-        n = args.n
-        from qiskit import ClassicalRegister, QuantumCircuit
-        cr = ClassicalRegister(n, 'cols')
-        qc.add_register(cr)
-        qc.measure(selectors_q, cr)
+    _logger.debug("real: {0}, online: {1}, backend_name: {2}".format(
+        real, online, backend_name))
     if (online):
         if (backend_name is None):
             backend_name = 'ibmq_qasm_simulator'
@@ -105,16 +116,60 @@ def run(qc, selectors_q, args):
             backend_name = 'qasm_simulator'
         from qiskit import Aer
         backend = Aer.get_backend(backend_name)
+    return backend, backend_name
 
-    _logger.debug("Preparing execution")
-    from qiskit import execute
-    _logger.debug("Execute")
-    job = execute(qc, backend, shots=4098)
-    _logger.debug(job.job_id())
-    result = job.result()
-    _logger.debug("Results ready")
-    _logger.debug("Syndrome was {0}; H was \n{1}".format(syndrome, h))
 
+def main():
+    args = usage()
+    load_modules()
+    n = args.n
+    r = args.r
+    w = 1
+    _logger.debug("w = {0}; n = {1}; r = {2}".format(w, n, r))
+
+    backend_name = args.backend_name
+    backend, backend_name = get_backend(args)
+    _logger.debug("After function, backend name is {0}".format(backend_name))
+
+    h, syndrome = get_sample_matrix_and_random_syndrome(n, r)
+    _logger.debug("Syndrome is {0}".format(syndrome))
+
+    if (backend_name in ('statevector_simulator', 'unitary_simulator')):
+        _logger.debug("Measures not needed")
+        need_measures = False
+    else:
+        _logger.debug("Measures needed")
+        need_measures = True
+    qc, selectors_q = prange_isd.build_circuit(h, syndrome, w, need_measures)
+
+    img_dir = args.img_dir
+    if img_dir is not None:
+        _logger.debug("Drawing")
+        img_file = img_dir + "prange_isd_{0}_{1}_{2}".format(n, r, w)
+        from qiskit.tools.visualization import circuit_drawer
+        circuit_drawer(
+            qc,
+            filename=img_file,
+            style={
+                'cregbundle': True,
+                'compress': True,
+                'fold': 40
+            },
+            output='mpl')
+        # circuit_drawer(qc, filename=img_file, output='latex')
+        # circuit_drawer(qc, filename=img_file, output='latex_source')
+        # circuit_drawer(qc, filename=img_file, line_length=-1, output='text')
+
+    s = args.export_qasm_file
+    if s is not None:
+        q = qc.qasm()
+        _logger.debug("Exporing circuit")
+        with open(s, "w+") as f:
+            f.write(q)
+        return
+    result = run(qc, backend)
+
+    plot = args.plot
     if backend_name in 'statevector_simulator':
         statevector = result.get_statevector(qc)
         _logger.debug("State vector is\n{0}".format(statevector))
@@ -134,52 +189,6 @@ def run(qc, selectors_q, args):
             plot_histogram(counts)
 
 
-def load_modules():
-    print("Loading modules")
-    global logging, _logger
-    import logging
-    _logger = logging.getLogger(__name__)
-    _handler = logging.StreamHandler()
-    _formatter = logging.Formatter(
-        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-    _handler.setFormatter(_formatter)
-    if (_logger.hasHandlers()):
-        _logger.handlers.clear()
-        _logger.addHandler(_handler)
-    _logger.setLevel(logging.DEBUG)
-    import os
-    import sys
-    sys.path.insert(
-        0, os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '..', 'src')))
-    global prange_isd
-    import prange_isd
-
-
-def main():
-    args = usage()
-    load_modules()
-    n = args.n
-    r = args.r
-    w = 1
-    partial_drawing = args.partial_drawing
-    img_dir = args.img_dir
-    h, syndrome = get_sample_matrix_and_random_syndrome(n, r)
-    _logger.debug("W = {0}; n = {1}; r = {2}".format(w, n, r))
-
-    _logger.debug("Syndrome is {0}".format(syndrome))
-    qc, selectors_q = prange_isd.build_circuit(h, syndrome, w, partial_drawing,
-                                               img_dir)
-    s = args.export_qasm_file
-    if s is not None:
-        q = qc.qasm()
-        _logger.debug("Exporing circuit")
-        with open(s, "w+") as f:
-            f.write(q)
-        print(q)
-        return
-    run(qc, selectors_q, args)
-
-
+_logger = None
 if __name__ == "__main__":
     main()
