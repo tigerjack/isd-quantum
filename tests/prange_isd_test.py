@@ -9,6 +9,8 @@ def usage():
         type=int,
         help='the r (== n - k) of the parity matrix H.')
     parser.add_argument(
+        'w', metavar='w', type=int, help='the weight of the error.')
+    parser.add_argument(
         '-r',
         '--real',
         action='store_true',
@@ -27,10 +29,30 @@ def usage():
         "The name of the backend. At the moment, the available local backends are: qasm_simulator, statevector_simulator and unitary_simulator."
     )
     parser.add_argument(
+        '-i',
+        '--infos',
+        action='store_true',
+        help=
+        'Print only infos on the circuit built for the specific backend (such as the number of gates) without executing it.'
+    )
+    parser.add_argument(
+        '-nx',
+        '--not_execute',
+        action='store_true',
+        help='Do not execute the circuit.')
+    parser.add_argument(
         '--img_dir',
         help=
         'If you want to store the image of the circuit, you need to specify the directory.'
     )
+    parser.add_argument(
+        '--draw_circuit',
+        action='store_true',
+        help='Draw the image of the circuit.')
+    parser.add_argument(
+        '--draw_dag',
+        action='store_true',
+        help='Draw the direct acyclic graph of the circuit.')
     parser.add_argument(
         '--plot',
         action='store_true',
@@ -119,12 +141,81 @@ def get_backend(args):
     return backend, backend_name
 
 
+def draw_circuit(qc, args):
+    _logger.debug("Drawing circuit")
+    img_file = args.img_dir + "prange_isd_{0}_{1}_{2}".format(
+        args.n, args.r, args.w)
+    style_mpl = {
+        'cregbundle': True,
+        'compress': True,
+        'usepiformat': True,
+        'subfontsize': 12,
+        'fold': 100,
+        'showindex': True,
+        "displaycolor": {
+            "id": "#ffca64",
+            "u0": "#f69458",
+            "u1": "#f69458",
+            "u2": "#f69458",
+            "u3": "#f69458",
+            "x": "#a6ce38",
+            "y": "#a6ce38",
+            "z": "#a6ce38",
+            "h": "#00bff2",
+            "s": "#00bff2",
+            "sdg": "#00bff2",
+            "t": "#ff6666",
+            "tdg": "#ff6666",
+            "rx": "#ffca64",
+            "ry": "#ffca64",
+            "rz": "#ffca64",
+            "reset": "#d7ddda",
+            "target": "#00bff2",
+            "meas": "#f070aa"
+        }
+    }
+    from qiskit.tools.visualization import circuit_drawer
+    circuit_drawer(qc, filename=img_file, style=style_mpl, output='mpl')
+    # circuit_drawer(qc, filename=img_file, output='latex')
+    # circuit_drawer(qc, filename=img_file, output='latex_source')
+    # circuit_drawer(qc, filename=img_file, line_length=-1, output='text')
+
+
+def draw_dag(qc, args):
+    _logger.debug("Drawing DAG")
+    from qiskit.converters import circuit_to_dag
+    dag = circuit_to_dag(qc)
+    img_file = args.img_dir + "prange_isd_{0}_{1}_{2}_dag".format(
+        args.n, args.r, args.w)
+    from qiskit.tools.visualization.dag_visualization import dag_drawer
+    dag_drawer(dag, img_file)
+
+
+def get_compiled_circuit_infos(qc, backend):
+    result = {}
+    _logger.debug("Getting infos ... ")
+    # backend_coupling = backend.configuration()['coupling_map']
+    result['n_qubits_qasm'] = qc.width()
+    result['depth_qasm'] = qc.depth()
+    result['count_ops'] = qc.count_ops()
+    # result['n_gates_qasm'] = sum(qc.count_ops().values())
+    result['n_gates_qasm'] = qc.size()
+    result['num_tensor_factors'] = qc.num_tensor_factors()
+    # qc_qasm = qc.qasm()
+    # result['n_gates_qasm'] = len(qc_qasm.split("\n")) - 4
+    # from qiskit import compile
+    # qc_compiled = compile(qc, backend=backend)
+    # qc_compiled_qasm = qc_compiled.experiments[0].header.compiled_circuit_qasm
+    # result['n_gates_compiled'] = len(qc_compiled_qasm.split("\n")) - 4
+    return result
+
+
 def main():
     args = usage()
     load_modules()
     n = args.n
     r = args.r
-    w = 1
+    w = args.w
     _logger.debug("w = {0}; n = {1}; r = {2}".format(w, n, r))
 
     backend_name = args.backend_name
@@ -142,31 +233,29 @@ def main():
         need_measures = True
     qc, selectors_q = prange_isd.build_circuit(h, syndrome, w, need_measures)
 
-    img_dir = args.img_dir
-    if img_dir is not None:
-        _logger.debug("Drawing")
-        img_file = img_dir + "prange_isd_{0}_{1}_{2}".format(n, r, w)
-        from qiskit.tools.visualization import circuit_drawer
-        circuit_drawer(
-            qc,
-            filename=img_file,
-            style={
-                'cregbundle': True,
-                'compress': True,
-                'fold': 40
-            },
-            output='mpl')
-        # circuit_drawer(qc, filename=img_file, output='latex')
-        # circuit_drawer(qc, filename=img_file, output='latex_source')
-        # circuit_drawer(qc, filename=img_file, line_length=-1, output='text')
-
     s = args.export_qasm_file
     if s is not None:
         q = qc.qasm()
         _logger.debug("Exporing circuit")
         with open(s, "w+") as f:
             f.write(q)
+
+    if (args.infos):
+        res = get_compiled_circuit_infos(qc, backend)
+        for k, v in res.items():
+            print("{0} --> {1}".format(k, v))
+
+    if args.img_dir is None:
+        args.img_dir = 'data/img/'
+    if args.draw_circuit:
+        draw_circuit(qc, args)
+    if args.draw_dag:
+        draw_dag(qc, args)
+
+    if (args.not_execute):
+        _logger.debug("Not execute set to true, exiting.")
         return
+
     result = run(qc, backend)
 
     plot = args.plot
@@ -187,6 +276,7 @@ def main():
             _logger.debug("Plotting")
             from qiskit.tools.visualization import plot_histogram
             plot_histogram(counts)
+    _logger.debug("H was\n{0}\nSyndrome was\n{1}".format(h, syndrome))
 
 
 if __name__ == "__main__":
