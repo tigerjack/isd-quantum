@@ -87,7 +87,7 @@ def load_modules():
     _handler.setFormatter(_formatter)
     if (_logger.hasHandlers()):
         _logger.handlers.clear()
-        _logger.addHandler(_handler)
+    _logger.addHandler(_handler)
     _logger.setLevel(logging.DEBUG)
     import os
     import sys
@@ -189,6 +189,5 @@ def main():
             plot_histogram(counts)
 
 
-_logger = None
 if __name__ == "__main__":
     main()
