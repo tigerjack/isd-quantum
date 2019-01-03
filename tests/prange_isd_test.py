@@ -89,7 +89,7 @@ def get_sample_matrix_and_random_syndrome(n, r):
 
 
 def run(qc, backend):
-    _logger.debug("Preparing execution")
+    _logger.debug("Preparing execution with backend {0}".format(backend))
     from qiskit import execute
     _logger.debug("Execute")
     job = execute(qc, backend, shots=4098)
