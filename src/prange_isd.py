@@ -113,6 +113,7 @@ def permutation_i(circuit, selectors_q, flip_q):
 
     permutation_support_i(circuit, selectors_q, flip_q, ancilla_counter - 1, 0,
                           n, int(n / 2))
+    circuit.barrier()
     # Hadamard all ancillas
     circuit.h(flip_q)
     circuit.barrier()
@@ -241,10 +242,15 @@ def build_circuit(h, syndrome, w, measures):
     sum_q = matrix2gates(qc, h, selectors_q, None)
     syndrome2gates(qc, sum_q, syndrome)
 
+    # An ancilla support register which is used to do all the
+    # operations requiring ancillas. After usage, every qubit must be reset.
     pseudo_ancilla_register = pse.PseudoQuantumRegister()
+    # The target qubits of the oracle
     pseudo_target_oracle = pse.PseudoQuantumRegister('oracle_targets')
+    # The qubits used for inversion about zero
     pseudo_control_inversion = pse.PseudoQuantumRegister('inversion_controls')
-    pseudo_target_oracle.add_registers(selectors_q, flip_q)
+    pseudo_target_oracle.add_registers(flip_q)
+    # For the oracle, if sum_q registers are all one, we invert the target
     single_control_sum = oracle(qc, sum_q, pseudo_target_oracle,
                                 pseudo_ancilla_register)
 
@@ -254,13 +260,18 @@ def build_circuit(h, syndrome, w, measures):
     permutation_i(qc, selectors_q, flip_q)
     n_choose_w(qc, selectors_q, w)
 
-    pseudo_control_inversion.add_registers(selectors_q, flip_q)
-    pseudo_control_inversion.add_qubits(single_control_sum)
+    # All the flip_q, except for flip_q[0], are controls
+    # pseudo_control_inversion.add_registers(flip_q)
+    for i in range(1, flip_q.size):
+        pseudo_control_inversion.add_qubits(flip_q[i])
 
-    negate_for_inversion(qc, selectors_q, flip_q)
+    # We negate all the flip registers ...
+    negate_for_inversion(qc, flip_q)
+    # ... and then apply inversion about zero using as control all the flips
+    # except for the first one; then we apply z gate to the first one
     single_control_inversion = inversion_about_zero(
-        qc, pseudo_control_inversion, selectors_q[0], pseudo_ancilla_register)
-    negate_for_inversion(qc, selectors_q, flip_q)
+        qc, pseudo_control_inversion, flip_q[0], pseudo_ancilla_register)
+    negate_for_inversion(qc, flip_q)
 
     n_choose_w(qc, selectors_q, w)
     permutation(qc, selectors_q, flip_q)
@@ -279,10 +290,10 @@ def build_circuit(h, syndrome, w, measures):
         permutation_i(qc, selectors_q, flip_q)
         n_choose_w(qc, selectors_q, w)
 
-        negate_for_inversion(qc, selectors_q, flip_q)
-        inversion_about_zero(qc, pseudo_control_inversion, selectors_q[0],
+        negate_for_inversion(qc, flip_q)
+        inversion_about_zero(qc, pseudo_control_inversion, flip_q[0],
                              pseudo_ancilla_register)
-        negate_for_inversion(qc, selectors_q, flip_q)
+        negate_for_inversion(qc, flip_q)
 
         n_choose_w(qc, selectors_q, w)
         permutation(qc, selectors_q, flip_q)
