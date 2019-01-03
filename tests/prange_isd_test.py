@@ -2,14 +2,14 @@ def usage():
     import argparse
     parser = argparse.ArgumentParser(description="Prange isd algorithm")
     parser.add_argument(
-        'n', metavar='n', type=int, help='the n of the parity matrix H.')
+        'n', metavar='n', type=int, help='The n of the parity matrix H.')
     parser.add_argument(
         'r',
         metavar='r',
         type=int,
-        help='the r (== n - k) of the parity matrix H.')
+        help='The r (== n - k) of the parity matrix H.')
     parser.add_argument(
-        'w', metavar='w', type=int, help='the weight of the error.')
+        'w', metavar='w', type=int, help='The weight of the error.')
     parser.add_argument(
         '-r',
         '--real',
@@ -21,6 +21,14 @@ def usage():
         action='store_true',
         help=
         'Use the online IBMQ devices. Default is local (simulator). This option is automatically set when we want to use a real device (see -r).'
+    )
+    parser.add_argument(
+        '-p',
+        '--provider',
+        default='basicaer',
+        choices=['basicaer', 'aer', 'qcgpu', 'projectq', 'jku'],
+        help=
+        "The name of the provider. At the moment, the available local providers are: Aer (default), QCGPU, ProjectQ, JKU. On the other hand, IBMQ provider is only selected through the -o flag becuase it has different names for backends."
     )
     parser.add_argument(
         '-b',
@@ -89,7 +97,9 @@ def get_sample_matrix_and_random_syndrome(n, r):
 
 
 def run(qc, backend):
-    _logger.debug("Preparing execution with backend {0}".format(backend))
+    _logger.debug(
+        "Preparing execution with backend {0} from provider {1}".format(
+            backend, backend.provider()))
     from qiskit import execute
     _logger.debug("Execute")
     job = execute(qc, backend, shots=4098)
@@ -122,23 +132,51 @@ def load_modules():
 
 
 def get_backend(args):
-    real = args.real
-    online = True if real else args.online
-    backend_name = args.backend_name
+    args.online = True if args.real else args.online
     _logger.debug("real: {0}, online: {1}, backend_name: {2}".format(
-        real, online, backend_name))
-    if (online):
-        if (backend_name is None):
-            backend_name = 'ibmq_qasm_simulator'
+        args.real, args.online, args.backend_name))
+    if (args.online):
+        if (args.backend_name is None):
+            if not args.real:
+                args.backend_name = 'ibmq_qasm_simulator'
+            else:
+                # from qiskit.providers.ibmq import least_busy
+                #     try:
+                #         large_enough_devices = IBMQ.backends(
+                #             filters=
+                #             lambda x: x.configuration()['n_qubits'] >= n and x.configuration()['simulator'] == (not real)
+                # )
+                #         backend = least_busy(large_enough_devices)
+                #         least_busy_device = least_busy(IBMQ.backends(simulator=False))
+                raise "Real default device not yet implemented"
         from qiskit import IBMQ
         IBMQ.load_accounts()
-        backend = IBMQ.get_backend(backend_name)
+        provider = IBMQ
     else:
-        if (backend_name is None):
-            backend_name = 'qasm_simulator'
-        from qiskit import Aer
-        backend = Aer.get_backend(backend_name)
-    return backend, backend_name
+        if (args.backend_name is None):
+            args.backend_name = 'qasm_simulator'
+
+        args.provider = args.provider.lower()
+
+        if args.provider == "basicaer":
+            from qiskit import BasicAer
+            provider = BasicAer
+        elif args.provider == "aer":
+            from qiskit import Aer
+            provider = Aer
+        elif args.provider in ("projectqp", "projectqpprovider"):
+            from qiskit_addon_projectq import ProjectQProvider
+            provider = ProjectQProvider()
+        elif args.provider in ("qcgpu", "qcgpuprovider"):
+            from qiskit_qcgpu_provider import QCGPUProvider
+            provider = QCGPUProvider()
+        elif args.provider in ("jku", "jkuprovider"):
+            from qiskit_addon_jku import JKUProvider
+            provider = JKUProvider()
+        else:
+            raise "Invalid provider {0}".format(args.provider)
+    backend = provider.get_backend(args.backend_name)
+    return backend
 
 
 def draw_circuit(qc, args):
@@ -213,19 +251,19 @@ def get_compiled_circuit_infos(qc, backend):
 def main():
     args = usage()
     load_modules()
+    _logger.debug(args)
     n = args.n
     r = args.r
     w = args.w
     _logger.debug("w = {0}; n = {1}; r = {2}".format(w, n, r))
 
-    backend_name = args.backend_name
-    backend, backend_name = get_backend(args)
-    _logger.debug("After function, backend name is {0}".format(backend_name))
+    backend = get_backend(args)
+    _logger.debug("After function, backend name is {0}".format(backend.name()))
 
     h, syndrome = get_sample_matrix_and_random_syndrome(n, r)
     _logger.debug("Syndrome is {0}".format(syndrome))
 
-    if (backend_name in ('statevector_simulator', 'unitary_simulator')):
+    if (backend.name() in ('statevector_simulator', 'unitary_simulator')):
         _logger.debug("Measures not needed")
         need_measures = False
     else:
@@ -259,14 +297,14 @@ def main():
     result = run(qc, backend)
 
     plot = args.plot
-    if backend_name in 'statevector_simulator':
+    if backend.name() in 'statevector_simulator':
         statevector = result.get_statevector(qc)
         _logger.debug("State vector is\n{0}".format(statevector))
         if plot:
             _logger.debug("Plotting")
             from qiskit.tools.visualization import plot_state_city
             plot_state_city(statevector)
-    elif backend_name in 'unitary_simulator':
+    elif backend.name() in 'unitary_simulator':
         unitary = result.get_unitary(qc)
         _logger.debug("Circuit unitary is:\n{0}".format(unitary))
     else:  # For qasm and real devices
