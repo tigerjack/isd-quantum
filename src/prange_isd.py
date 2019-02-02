@@ -1,8 +1,9 @@
 import logging
 from math import log, sqrt, pi
 from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.aqua import utils
 import composed_gates
-import pseudoquantumregister as pse
+# import pseudoquantumregister as pse
 
 _logger = logging.getLogger(__name__)
 _handler = logging.StreamHandler()
@@ -191,15 +192,33 @@ def syndrome2gates(qc, sum_q, s):
     qc.barrier()
 
 
-def oracle(qc, sum_q, pseudo_target, anc):
+def syndrome2gates_i(qc, sum_q, s):
+    return syndrome2gates(qc, sum_q, s)
+
+
+def oracle(qc, sum_q, to_invert_q, ancillas_q, mode):
     _logger.debug("oracle -> initializing")
-    single_control = composed_gates.n_control_compute(qc, sum_q, anc)
+    # if (ancillas_q is None or ancillas_q.size == 0):
+    #     m = 'noancilla'
+    #     _logger.debug("oracle -> no ancilla mode for mct")
+    # elif (ancillas_q.size == len(sum_q.size) - 2):
+    #     m = 'basic'
+    #     _logger.debug("oracle -> basic mode for mct")
+    # elif (ancillas_q.size == 1):
+    #     m = 'advanced'
+    #     _logger.debug("oracle -> advanced mode for mct")
+    # else:
+    #     raise "oracle -> wrong number of ancillas for whatever mode {0}".format(
+    #         len(ancillas_q))
+
+    qc.h(to_invert_q)
+    qc.mct(sum_q, to_invert_q, ancillas_q, mode=mode)
+    qc.h(to_invert_q)
+    # single_control = composed_gates.n_control_compute(qc, sum_q, anc)
     # copy
-    m = len(pseudo_target)
-    for i in range(m):
-        qc.cz(single_control, pseudo_target[i])
-    composed_gates.n_control_uncompute(qc, sum_q, anc)
-    return single_control
+    # m = len(to_invert_q)
+    # for i in range(m):
+    #     qc.cz(multi_control_target_qubit, to_invert_q[i])
 
 
 def negate_for_inversion(qc, *registers):
@@ -208,21 +227,27 @@ def negate_for_inversion(qc, *registers):
 
 
 # single control sum is not a QuantumRegister, but a qubit
-def inversion_about_zero(qc, pseudo_control_register, inversion_qubit,
-                         ancillas_inversion):
+def inversion_about_zero(qc, control_q, multi_control_target_qubit, ancillas_q,
+                         mode):
     _logger.debug("inversion_about_zero -> initializing")
     qc.barrier()
+    # if (ancillas_q is None or ancillas_q.size == 0):
+    #     m = 'noancilla'
+    #     _logger.debug("inversion_about_zero -> no ancilla mode for mct")
+    # elif (ancillas_q.size == len(control_q) - 2):
+    #     m = 'basic'
+    #     _logger.debug("inversion_about_zero -> basic mode for mct")
+    # elif (ancillas_q.size == 1):
+    #     m = 'advanced'
+    #     _logger.debug("inversion_about_zero -> advanced mode for mct")
+    # else:
+    #     raise "inversion_about_zero -> wrong number of ancillas for whatever mode {0}".format(
+    #         len(ancillas_q))
 
-    single_control_inversion = composed_gates.n_control_compute(
-        qc, pseudo_control_register, ancillas_inversion)
-
-    qc.cz(single_control_inversion, inversion_qubit)
-
-    composed_gates.n_control_uncompute(qc, pseudo_control_register,
-                                       ancillas_inversion)
-
+    qc.h(multi_control_target_qubit)
+    qc.mct(control_q, multi_control_target_qubit, ancillas_q, mode=mode)
+    qc.h(multi_control_target_qubit)
     qc.barrier()
-    return single_control_inversion, ancillas_inversion
 
 
 # param is a dictionary containing n, r, partial_drawing and img_dir
@@ -242,35 +267,28 @@ def build_circuit(h, syndrome, w, measures):
     sum_q = matrix2gates(qc, h, selectors_q, None)
     syndrome2gates(qc, sum_q, syndrome)
 
-    # An ancilla support register which is used to do all the
-    # operations requiring ancillas. After usage, every qubit must be reset.
-    pseudo_ancilla_register = pse.PseudoQuantumRegister()
-    # The target qubits of the oracle
-    pseudo_target_oracle = pse.PseudoQuantumRegister('oracle_targets')
-    # The qubits used for inversion about zero
-    pseudo_control_inversion = pse.PseudoQuantumRegister('inversion_controls')
-    pseudo_target_oracle.add_registers(flip_q)
-    # For the oracle, if sum_q registers are all one, we invert the target
-    single_control_sum = oracle(qc, sum_q, pseudo_target_oracle,
-                                pseudo_ancilla_register)
+    # oracle_target_q = QuantumRegister(1, 'or_target')
+    # qc.add_register(oracle_target_q)
 
-    syndrome2gates(qc, sum_q, syndrome)
+    # ancillas_q = QuantumRegister(flip_q.size - 3, 'ancillas')
+    # mode = 'basic'
+    ancillas_q = QuantumRegister(1, 'ancilla')
+    mode = 'advanced'
+    qc.add_register(ancillas_q)
+
+    # oracle(qc, sum_q, oracle_target_q[0], flip_q, ancillas_q)
+    oracle(qc, sum_q[1:], sum_q[0], ancillas_q, mode)
+
+    syndrome2gates_i(qc, sum_q, syndrome)
     matrix2gates_i(qc, h, selectors_q, sum_q)
 
     permutation_i(qc, selectors_q, flip_q)
     n_choose_w(qc, selectors_q, w)
 
-    # All the flip_q, except for flip_q[0], are controls
-    # pseudo_control_inversion.add_registers(flip_q)
-    for i in range(1, flip_q.size):
-        pseudo_control_inversion.add_qubits(flip_q[i])
-
-    # We negate all the flip registers ...
     negate_for_inversion(qc, flip_q)
-    # ... and then apply inversion about zero using as control all the flips
-    # except for the first one; then we apply z gate to the first one
-    single_control_inversion = inversion_about_zero(
-        qc, pseudo_control_inversion, flip_q[0], pseudo_ancilla_register)
+    # inversion_about_zero_target_q = QuantumRegister(1, 'inv_target')
+    # qc.add_register(inversion_about_zero_target_q)
+    inversion_about_zero(qc, flip_q[1:], flip_q[0], ancillas_q, mode)
     negate_for_inversion(qc, flip_q)
 
     n_choose_w(qc, selectors_q, w)
@@ -284,15 +302,17 @@ def build_circuit(h, syndrome, w, measures):
         matrix2gates(qc, h, selectors_q, sum_q)
         syndrome2gates(qc, sum_q, syndrome)
 
-        oracle(qc, sum_q, pseudo_target_oracle, pseudo_ancilla_register)
+        # oracle(qc, sum_q, pseudo_target_oracle, pseudo_ancilla_register)
+        oracle(qc, sum_q[1:], sum_q[0], ancillas_q, mode)
         syndrome2gates(qc, sum_q, syndrome)
         matrix2gates_i(qc, h, selectors_q, sum_q)
         permutation_i(qc, selectors_q, flip_q)
         n_choose_w(qc, selectors_q, w)
 
         negate_for_inversion(qc, flip_q)
-        inversion_about_zero(qc, pseudo_control_inversion, flip_q[0],
-                             pseudo_ancilla_register)
+        # inversion_about_zero(qc, pseudo_control_inversion, flip_q[0],
+        #                      pseudo_ancilla_register)
+        inversion_about_zero(qc, flip_q[1:], flip_q[0], ancillas_q, mode)
         negate_for_inversion(qc, flip_q)
 
         n_choose_w(qc, selectors_q, w)
@@ -303,5 +323,4 @@ def build_circuit(h, syndrome, w, measures):
         cr = ClassicalRegister(n, 'cols')
         qc.add_register(cr)
         qc.measure(selectors_q, cr)
-
     return qc, selectors_q
