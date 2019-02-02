@@ -20,7 +20,7 @@ def usage():
         '--online',
         action='store_true',
         help=
-        'Use the online IBMQ devices. Default is local (simulator). This option is automatically set when we want to use a real device (see -r).'
+        'Use the online IBMQ devices. Default is local (simulator). This option is automatically set to true when we want to use a real device (see -r).'
     )
     parser.add_argument(
         '-p',
@@ -28,13 +28,17 @@ def usage():
         default='basicaer',
         choices=['basicaer', 'aer', 'qcgpu', 'projectq', 'jku'],
         help=
-        "The name of the provider. At the moment, the available local providers are: Aer (default), QCGPU, ProjectQ, JKU. On the other hand, IBMQ provider is only selected through the -o flag becuase it has different names for backends."
+        "The name of the provider. At the moment, the available local providers are: BasicAer, Aer, QCGPU, ProjectQ, JKU. On the other hand, IBMQ provider is only selected through the -o flag becuase it has different names for backends."
     )
     parser.add_argument(
         '-b',
         '--backend_name',
+        default='qasm_simulator',
+        choices=[
+            'qasm_simulator', 'statevector_simulator', 'unitary_simulator'
+        ],
         help=
-        "The name of the backend. At the moment, the available local backends are: qasm_simulator, statevector_simulator and unitary_simulator."
+        "The name of the backend. At the moment, the available local backends are: qasm_simulator (default), statevector_simulator and unitary_simulator."
     )
     parser.add_argument(
         '-i',
