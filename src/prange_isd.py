@@ -1,9 +1,8 @@
 import logging
 from math import log, sqrt, pi
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumRegister
 from qiskit.aqua import utils
 import composed_gates
-# import pseudoquantumregister as pse
 
 _logger = logging.getLogger(__name__)
 _handler = logging.StreamHandler()
@@ -13,10 +12,10 @@ _handler.setFormatter(_formatter)
 if (_logger.hasHandlers()):
     _logger.handlers.clear()
 _logger.addHandler(_handler)
-_logger.setLevel(logging.DEBUG)
+_logger.setLevel(logging.INFO)
 
 
-def initialize_circuit(n):
+def _initialize_circuit(circuit, n):
     """
     Initialize the circuit with n qubits. The n is the same n of the H parity matrix and it is used to represent the choice of the column of the matrix.
 
@@ -29,12 +28,11 @@ def initialize_circuit(n):
         "initialize_circuit -> creating n = {0} qubits for selection".format(
             n))
     selectors_q = QuantumRegister(n, 'select')
-    circuit = QuantumCircuit(selectors_q)
+    circuit.add_register(selectors_q)
+    return selectors_q
 
-    return circuit, selectors_q
 
-
-def n_choose_w(circuit, selectors_q, w):
+def _n_choose_w(circuit, selectors_q, w):
     """
     Given the n selectors_q QuantumRegister, initialize w qubits to 1. w is the weight of the error.
 
@@ -51,7 +49,7 @@ def n_choose_w(circuit, selectors_q, w):
         circuit.x(selectors_q[i])
 
 
-def permutation(circuit, selectors_q, flip_q):
+def _permutation(circuit, selectors_q, flip_q):
     n = len(selectors_q)
     _logger.debug("Permutation -> input n is {0}".format(n))
     if (flip_q is None):
@@ -65,14 +63,14 @@ def permutation(circuit, selectors_q, flip_q):
     # Hadamard all ancillas
     circuit.h(flip_q)
     circuit.barrier()
-    permutation_support(circuit, selectors_q, flip_q, ancilla_used, 0, n,
-                        int(n / 2))
+    _permutation_support(circuit, selectors_q, flip_q, ancilla_used, 0, n,
+                         int(n / 2))
     circuit.barrier()
     return flip_q
 
 
-def permutation_support(circuit, selectors_q, flip_q, ancilla_used, start, end,
-                        swap_step):
+def _permutation_support(circuit, selectors_q, flip_q, ancilla_used, start,
+                         end, swap_step):
     _logger.debug(
         "Permutation support -> Start: {0}, end: {1}, swap_step: {2}".format(
             start, end, swap_step))
@@ -88,57 +86,57 @@ def permutation_support(circuit, selectors_q, flip_q, ancilla_used, start, end,
         ancilla_used += 1
     _logger.debug("Permutation support -> Ancilla used after FOR {0}".format(
         ancilla_used))
-    ancilla_used = permutation_support(circuit, selectors_q, flip_q,
-                                       ancilla_used, start,
-                                       int((start + end) / 2),
-                                       int(swap_step / 2))
+    ancilla_used = _permutation_support(circuit, selectors_q, flip_q,
+                                        ancilla_used, start,
+                                        int((start + end) / 2),
+                                        int(swap_step / 2))
     _logger.debug(
         "Permutation support -> Ancilla used after FIRST recursion {0}".format(
             ancilla_used))
-    ancilla_used = permutation_support(circuit, selectors_q,
-                                       flip_q, ancilla_used,
-                                       int((start + end) / 2), end,
-                                       int(swap_step / 2))
+    ancilla_used = _permutation_support(circuit, selectors_q,
+                                        flip_q, ancilla_used,
+                                        int((start + end) / 2), end,
+                                        int(swap_step / 2))
     _logger.debug(
         "Permutation support -> Ancilla used after SECOND recursion {0}".
         format(ancilla_used))
     return ancilla_used
 
 
-def permutation_i(circuit, selectors_q, flip_q):
+def _permutation_i(circuit, selectors_q, flip_q):
     n = len(selectors_q)
     _logger.debug("Permutation_i -> input n is {0}".format(n))
     ancilla_counter = len(flip_q)
     _logger.debug("Permutation_i -> Number of hadamard qubits is {0}".format(
         ancilla_counter))
 
-    permutation_support_i(circuit, selectors_q, flip_q, ancilla_counter - 1, 0,
-                          n, int(n / 2))
+    _permutation_support_i(circuit, selectors_q, flip_q, ancilla_counter - 1,
+                           0, n, int(n / 2))
     circuit.barrier()
     # Hadamard all ancillas
     circuit.h(flip_q)
     circuit.barrier()
 
 
-def permutation_support_i(circuit, selectors_q, flip_q, ancilla_used, start,
-                          end, swap_step):
+def _permutation_support_i(circuit, selectors_q, flip_q, ancilla_used, start,
+                           end, swap_step):
     _logger.debug(
         "Permutation support_i -> Start: {0}, end: {1}, swap_step: {2}".format(
             start, end, swap_step))
     if (swap_step == 0 or start >= end):
         _logger.debug("Permutation support_i -> Base case recursion")
         return ancilla_used
-    ancilla_used = permutation_support_i(circuit, selectors_q,
-                                         flip_q, ancilla_used,
-                                         int((start + end) / 2), end,
-                                         int(swap_step / 2))
+    ancilla_used = _permutation_support_i(circuit, selectors_q,
+                                          flip_q, ancilla_used,
+                                          int((start + end) / 2), end,
+                                          int(swap_step / 2))
     _logger.debug(
         "Permutation support_i -> Ancilla used after FIRST recursion {0}".
         format(ancilla_used))
-    ancilla_used = permutation_support_i(circuit, selectors_q, flip_q,
-                                         ancilla_used, start,
-                                         int((start + end) / 2),
-                                         int(swap_step / 2))
+    ancilla_used = _permutation_support_i(circuit, selectors_q, flip_q,
+                                          ancilla_used, start,
+                                          int((start + end) / 2),
+                                          int(swap_step / 2))
     _logger.debug(
         "Permutation support_i -> Ancilla used after SECOND recursion {0}".
         format(ancilla_used))
@@ -154,7 +152,7 @@ def permutation_support_i(circuit, selectors_q, flip_q, ancilla_used, start,
     return ancilla_used
 
 
-def matrix2gates(qc, h, selectors_q, sum_q):
+def _matrix2gates(qc, h, selectors_q, sum_q):
     _logger.debug("matrix2gates -> initializing")
     r = h.shape[0]  # 3, rows
     n = h.shape[1]  # 8, columns
@@ -171,7 +169,7 @@ def matrix2gates(qc, h, selectors_q, sum_q):
     return sum_q
 
 
-def matrix2gates_i(qc, h, selectors_q, sum_q):
+def _matrix2gates_i(qc, h, selectors_q, sum_q):
     _logger.debug("matrix2gates_i -> initializing")
     r = h.shape[0]  # 3, rows
     n = h.shape[1]  # 8, columns
@@ -183,7 +181,7 @@ def matrix2gates_i(qc, h, selectors_q, sum_q):
         qc.barrier()
 
 
-def syndrome2gates(qc, sum_q, s):
+def _syndrome2gates(qc, sum_q, s):
     _logger.debug("syndrome2gates -> initializing")
     for i in range(len(s)):
         if (s[i] == 0):
@@ -192,11 +190,11 @@ def syndrome2gates(qc, sum_q, s):
     qc.barrier()
 
 
-def syndrome2gates_i(qc, sum_q, s):
-    return syndrome2gates(qc, sum_q, s)
+def _syndrome2gates_i(qc, sum_q, s):
+    return _syndrome2gates(qc, sum_q, s)
 
 
-def oracle(qc, sum_q, to_invert_q, ancillas_q, mode):
+def _oracle(qc, sum_q, to_invert_q, ancillas_q, mode):
     _logger.debug("oracle -> initializing")
     # if (ancillas_q is None or ancillas_q.size == 0):
     #     m = 'noancilla'
@@ -221,14 +219,14 @@ def oracle(qc, sum_q, to_invert_q, ancillas_q, mode):
     #     qc.cz(multi_control_target_qubit, to_invert_q[i])
 
 
-def negate_for_inversion(qc, *registers):
+def _negate_for_inversion(qc, *registers):
     for register in registers:
         qc.x(register)
 
 
 # single control sum is not a QuantumRegister, but a qubit
-def inversion_about_zero(qc, control_q, multi_control_target_qubit, ancillas_q,
-                         mode):
+def _inversion_about_zero(qc, control_q, multi_control_target_qubit,
+                          ancillas_q, mode):
     _logger.debug("inversion_about_zero -> initializing")
     qc.barrier()
     # if (ancillas_q is None or ancillas_q.size == 0):
@@ -250,7 +248,6 @@ def inversion_about_zero(qc, control_q, multi_control_target_qubit, ancillas_q,
     qc.barrier()
 
 
-# param is a dictionary containing n, r, partial_drawing and img_dir
 def build_circuit(h, syndrome, w, measures):
     n = h.shape[1]
     r = h.shape[0]
@@ -258,14 +255,17 @@ def build_circuit(h, syndrome, w, measures):
         "n: {0}, r: {1}, w: {2}, syndrome: {3}, measures: {4}".format(
             n, r, w, syndrome, measures))
 
-    qc, selectors_q = initialize_circuit(n)
-    n_choose_w(qc, selectors_q, w)
+    # Don't know why but it stops working if put in the import section
+    from qiskit import QuantumCircuit
+    qc = QuantumCircuit()
+    selectors_q = _initialize_circuit(qc, n)
+    _n_choose_w(qc, selectors_q, w)
 
-    flip_q = permutation(qc, selectors_q, None)
+    flip_q = _permutation(qc, selectors_q, None)
 
     # First grover, to initialize everything
-    sum_q = matrix2gates(qc, h, selectors_q, None)
-    syndrome2gates(qc, sum_q, syndrome)
+    sum_q = _matrix2gates(qc, h, selectors_q, None)
+    _syndrome2gates(qc, sum_q, syndrome)
 
     # oracle_target_q = QuantumRegister(1, 'or_target')
     # qc.add_register(oracle_target_q)
@@ -277,50 +277,50 @@ def build_circuit(h, syndrome, w, measures):
     qc.add_register(ancillas_q)
 
     # oracle(qc, sum_q, oracle_target_q[0], flip_q, ancillas_q)
-    oracle(qc, sum_q[1:], sum_q[0], ancillas_q, mode)
+    _oracle(qc, sum_q[1:], sum_q[0], ancillas_q, mode)
 
-    syndrome2gates_i(qc, sum_q, syndrome)
-    matrix2gates_i(qc, h, selectors_q, sum_q)
+    _syndrome2gates_i(qc, sum_q, syndrome)
+    _matrix2gates_i(qc, h, selectors_q, sum_q)
 
-    permutation_i(qc, selectors_q, flip_q)
-    n_choose_w(qc, selectors_q, w)
+    _permutation_i(qc, selectors_q, flip_q)
+    _n_choose_w(qc, selectors_q, w)
 
-    negate_for_inversion(qc, flip_q)
+    _negate_for_inversion(qc, flip_q)
     # inversion_about_zero_target_q = QuantumRegister(1, 'inv_target')
     # qc.add_register(inversion_about_zero_target_q)
-    inversion_about_zero(qc, flip_q[1:], flip_q[0], ancillas_q, mode)
-    negate_for_inversion(qc, flip_q)
+    _inversion_about_zero(qc, flip_q[1:], flip_q[0], ancillas_q, mode)
+    _negate_for_inversion(qc, flip_q)
 
-    n_choose_w(qc, selectors_q, w)
-    permutation(qc, selectors_q, flip_q)
+    _n_choose_w(qc, selectors_q, w)
+    _permutation(qc, selectors_q, flip_q)
 
     # Remaining grover iterations
     rounds = int(round((pi / 2 * sqrt(n) - 1) / 2))
     _logger.debug("{0} rounds required".format(rounds - 1))
     for i in range(rounds - 1):
         _logger.debug("ITERATION {0}".format(i))
-        matrix2gates(qc, h, selectors_q, sum_q)
-        syndrome2gates(qc, sum_q, syndrome)
+        _matrix2gates(qc, h, selectors_q, sum_q)
+        _syndrome2gates(qc, sum_q, syndrome)
 
         # oracle(qc, sum_q, pseudo_target_oracle, pseudo_ancilla_register)
-        oracle(qc, sum_q[1:], sum_q[0], ancillas_q, mode)
-        syndrome2gates(qc, sum_q, syndrome)
-        matrix2gates_i(qc, h, selectors_q, sum_q)
-        permutation_i(qc, selectors_q, flip_q)
-        n_choose_w(qc, selectors_q, w)
+        _oracle(qc, sum_q[1:], sum_q[0], ancillas_q, mode)
+        _syndrome2gates(qc, sum_q, syndrome)
+        _matrix2gates_i(qc, h, selectors_q, sum_q)
+        _permutation_i(qc, selectors_q, flip_q)
+        _n_choose_w(qc, selectors_q, w)
 
-        negate_for_inversion(qc, flip_q)
+        _negate_for_inversion(qc, flip_q)
         # inversion_about_zero(qc, pseudo_control_inversion, flip_q[0],
         #                      pseudo_ancilla_register)
-        inversion_about_zero(qc, flip_q[1:], flip_q[0], ancillas_q, mode)
-        negate_for_inversion(qc, flip_q)
+        _inversion_about_zero(qc, flip_q[1:], flip_q[0], ancillas_q, mode)
+        _negate_for_inversion(qc, flip_q)
 
-        n_choose_w(qc, selectors_q, w)
-        permutation(qc, selectors_q, flip_q)
+        _n_choose_w(qc, selectors_q, w)
+        _permutation(qc, selectors_q, flip_q)
 
     if measures:
         from qiskit import ClassicalRegister, QuantumCircuit
         cr = ClassicalRegister(n, 'cols')
         qc.add_register(cr)
         qc.measure(selectors_q, cr)
-    return qc, selectors_q
+    return qc
