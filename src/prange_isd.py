@@ -15,7 +15,7 @@ _logger.addHandler(_handler)
 _logger.setLevel(logging.INFO)
 
 
-def _initialize_circuit(circuit, n):
+def _initialize_circuit(circuit, n, r, mct_mode):
     """
     Initialize the circuit with n qubits. The n is the same n of the H parity matrix and it is used to represent the choice of the column of the matrix.
 
@@ -27,9 +27,26 @@ def _initialize_circuit(circuit, n):
     _logger.debug(
         "initialize_circuit -> creating n = {0} qubits for selection".format(
             n))
+
     selectors_q = QuantumRegister(n, 'select')
+    sum_q = QuantumRegister(r, 'sum')
+
+    # TODO CEIL + 1 to support everything
+    flips_counter = int(log(n, 2)) * int(n / 2)
+    _logger.debug("Permutation -> Number of hadamard qubits is {0}".format(
+        flips_counter))
+    flip_q = QuantumRegister(flips_counter, "flip")
     circuit.add_register(selectors_q)
-    return selectors_q
+    circuit.add_register(sum_q)
+    circuit.add_register(flip_q)
+
+    if mct_mode == 'advanced':
+        ancillas_q = QuantumRegister(1, 'ancillas')
+    elif mct_mode == 'basic':
+        ancillas_q = QuantumRegister(flip_q.size - 2, 'ancillas')
+
+    circuit.add_register(ancillas_q)
+    return selectors_q, sum_q, flip_q, ancillas_q
 
 
 def _n_choose_w(circuit, selectors_q, w):
@@ -52,12 +69,6 @@ def _n_choose_w(circuit, selectors_q, w):
 def _permutation(circuit, selectors_q, flip_q):
     n = len(selectors_q)
     _logger.debug("Permutation -> input n is {0}".format(n))
-    if (flip_q is None):
-        flips_counter = int(log(n, 2)) * int(n / 2)
-        _logger.debug("Permutation -> Number of hadamard qubits is {0}".format(
-            flips_counter))
-        flip_q = QuantumRegister(flips_counter, "flip")
-        circuit.add_register(flip_q)
     ancilla_used = 0
 
     # Hadamard all ancillas
@@ -156,17 +167,12 @@ def _matrix2gates(qc, h, selectors_q, sum_q):
     _logger.debug("matrix2gates -> initializing")
     r = h.shape[0]  # 3, rows
     n = h.shape[1]  # 8, columns
-    if (sum_q is None):
-        sum_q = QuantumRegister(r, 'sum')
-        qc.add_register(sum_q)
     for i in range(n):
         for j in range(r):
             if h[j][i] == 1:
                 _logger.debug("1 at [{0},{1}]".format(j, i))
                 qc.cx(selectors_q[i], sum_q[j])
         qc.barrier()
-
-    return sum_q
 
 
 def _matrix2gates_i(qc, h, selectors_q, sum_q):
@@ -258,51 +264,22 @@ def build_circuit(h, syndrome, w, measures):
     # Don't know why but it stops working if put in the import section
     from qiskit import QuantumCircuit
     qc = QuantumCircuit()
-    selectors_q = _initialize_circuit(qc, n)
-    _n_choose_w(qc, selectors_q, w)
-
-    flip_q = _permutation(qc, selectors_q, None)
-
-    # First grover, to initialize everything
-    sum_q = _matrix2gates(qc, h, selectors_q, None)
-    _syndrome2gates(qc, sum_q, syndrome)
-
-    # oracle_target_q = QuantumRegister(1, 'or_target')
-    # qc.add_register(oracle_target_q)
-
-    # ancillas_q = QuantumRegister(flip_q.size - 3, 'ancillas')
-    # mode = 'basic'
-    ancillas_q = QuantumRegister(1, 'ancilla')
     mode = 'advanced'
-    qc.add_register(ancillas_q)
-
-    # oracle(qc, sum_q, oracle_target_q[0], flip_q, ancillas_q)
-    _oracle(qc, sum_q[1:], sum_q[0], ancillas_q, mode)
-
-    _syndrome2gates_i(qc, sum_q, syndrome)
-    _matrix2gates_i(qc, h, selectors_q, sum_q)
-
-    _permutation_i(qc, selectors_q, flip_q)
-    _n_choose_w(qc, selectors_q, w)
-
-    _negate_for_inversion(qc, flip_q)
-    # inversion_about_zero_target_q = QuantumRegister(1, 'inv_target')
-    # qc.add_register(inversion_about_zero_target_q)
-    _inversion_about_zero(qc, flip_q[1:], flip_q[0], ancillas_q, mode)
-    _negate_for_inversion(qc, flip_q)
+    # mode = 'basic'
+    selectors_q, sum_q, flip_q, ancillas_q = _initialize_circuit(
+        qc, n, r, mode)
 
     _n_choose_w(qc, selectors_q, w)
     _permutation(qc, selectors_q, flip_q)
 
-    # Remaining grover iterations
-    rounds = int(round((pi / 2 * sqrt(n) - 1) / 2))
+    # Number of grover iterations
+    rounds = int(round((pi / 2 * sqrt(n) - 1) / 2)) + 1
     _logger.debug("{0} rounds required".format(rounds - 1))
     for i in range(rounds - 1):
         _logger.debug("ITERATION {0}".format(i))
         _matrix2gates(qc, h, selectors_q, sum_q)
         _syndrome2gates(qc, sum_q, syndrome)
 
-        # oracle(qc, sum_q, pseudo_target_oracle, pseudo_ancilla_register)
         _oracle(qc, sum_q[1:], sum_q[0], ancillas_q, mode)
         _syndrome2gates(qc, sum_q, syndrome)
         _matrix2gates_i(qc, h, selectors_q, sum_q)
@@ -310,8 +287,6 @@ def build_circuit(h, syndrome, w, measures):
         _n_choose_w(qc, selectors_q, w)
 
         _negate_for_inversion(qc, flip_q)
-        # inversion_about_zero(qc, pseudo_control_inversion, flip_q[0],
-        #                      pseudo_ancilla_register)
         _inversion_about_zero(qc, flip_q[1:], flip_q[0], ancillas_q, mode)
         _negate_for_inversion(qc, flip_q)
 
@@ -319,7 +294,7 @@ def build_circuit(h, syndrome, w, measures):
         _permutation(qc, selectors_q, flip_q)
 
     if measures:
-        from qiskit import ClassicalRegister, QuantumCircuit
+        from qiskit import ClassicalRegister
         cr = ClassicalRegister(n, 'cols')
         qc.add_register(cr)
         qc.measure(selectors_q, cr)

@@ -111,7 +111,7 @@ def load_modules():
     _logger = logging.getLogger(__name__)
     _handler = logging.StreamHandler()
     _formatter = logging.Formatter(
-        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+        '%(asctime)s %(levelname)-8s %(name)-12s %(funcName)-12s %(message)s')
     _handler.setFormatter(_formatter)
     if (_logger.hasHandlers()):
         _logger.handlers.clear()
@@ -165,8 +165,8 @@ def get_backend(args, n_qubits):
         backend = provider.get_backend(args.backend_name)
         if backend.configuration().n_qubits < n_qubits:
             raise Exception(
-                "Backend {0} on provider {1} has only {2} qubits, less than the {3} needed."
-                .format(backend.backend_name, args.provider,
+                "Backend {0} on provider {1} has only {2} qubits, while {3} are needed."
+                .format(backend.name(), backend.provider(),
                         backend.configuration().n_qubits, n_qubits))
     return backend
 
@@ -197,13 +197,19 @@ def get_sample_matrix_and_random_syndrome(n, r):
 
 
 def run(qc, backend):
-    _logger.debug(
+    _logger.info(
         "Preparing execution with backend {0} from provider {1}".format(
             backend, backend.provider()))
     from qiskit import execute
     _logger.debug("Execute")
-    job = execute(qc, backend, shots=4098)
-    _logger.debug(job.job_id())
+    job = execute(qc, backend, shots=8192)
+    _logger.info("Job id is {0}".format(job.job_id()))
+    if (not backend.status().operational or backend.status().pending_jobs > 2
+            or backend.status().status_msg == 'calibrating'):
+        _logger.warn(
+            "Backend {0} from provider {1} can't execute the circuit any time soon, try to retrieve the result using the job id later on"
+            .format(backend, backend.provider()))
+        return None
     result = job.result()
     _logger.debug("Results ready")
     return result
@@ -325,7 +331,9 @@ def main():
         return
 
     result = run(qc, backend)
-
+    if result is None:
+        _logger.info("Result is none")
+        return
     plot = args.plot
     if backend.name() in 'statevector_simulator':
         statevector = result.get_statevector(qc)
