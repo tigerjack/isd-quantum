@@ -108,23 +108,27 @@ def clean_args(args):
 def load_modules():
     global logging, _logger
     import logging
+    import os
+    logging_level = logging._nameToLevel.get(os.getenv('LOG_LEVEL'), 'INFO')
     _logger = logging.getLogger(__name__)
     _handler = logging.StreamHandler()
     _formatter = logging.Formatter(
-        '%(asctime)s %(levelname)-8s %(name)-12s %(funcName)-12s %(message)s')
+        # '%(asctime)s %(levelname)-8s %(name)-12s %(funcName)-12s %(message)s')
+        '>%(levelname)-8s %(name)-12s %(funcName)-12s %(message)s')
     _handler.setFormatter(_formatter)
     if (_logger.hasHandlers()):
         _logger.handlers.clear()
     _logger.addHandler(_handler)
-    _logger.setLevel(logging.INFO)
-    import os
+    _logger.setLevel(logging_level)
     import sys
     sys.path.insert(
         0, os.path.abspath(
             os.path.join(os.path.dirname(__file__), '..', 'src')))
-    _logger.debug("Loading prange isd")
-    global prange_isd
-    import prange_isd
+    global PrangeISD
+    from prange_isd import PrangeISD
+    prange_isd_logger = logging.getLogger('prange_isd')
+    prange_isd_logger.setLevel(logging_level)
+    prange_isd_logger.addHandler(_handler)
 
 
 def get_backend(args, n_qubits):
@@ -302,7 +306,8 @@ def main():
     else:
         _logger.debug("Measures needed")
         need_measures = True
-    qc = prange_isd.build_circuit(h, syndrome, w, need_measures)
+    pisd = PrangeISD(h, syndrome, w, need_measures)
+    qc = pisd.build_circuit()
 
     s = args.export_qasm_file
     if s is not None:
@@ -352,7 +357,8 @@ def main():
             _logger.debug("Plotting")
             from qiskit.tools.visualization import plot_histogram
             plot_histogram(counts)
-    _logger.info("H was\n{0}\nSyndrome was\n{1}".format(h, syndrome))
+    _logger.info("H was\n{0}".format(h))
+    _logger.info("Syndrome was\n{0}".format(syndrome))
 
 
 if __name__ == "__main__":
