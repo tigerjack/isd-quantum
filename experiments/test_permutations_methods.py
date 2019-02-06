@@ -1,8 +1,6 @@
 import numpy as np
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 
-cr = None
-
 
 def preparing_initial_states(n, r):
     if (n == 7):
@@ -19,79 +17,6 @@ def preparing_initial_states(n, r):
     qc.barrier()
 
     return qr, cr, qc
-
-
-# NO
-def permutation_1(qr, qc, n):
-    for i in range(n):
-        for j in range(i + 1, n):
-            for k in range(j + 1, n):
-                if np.random.random() > 0.5:
-                    qc.swap(qr[i], qr[j])
-
-    qc.measure(qr, cr)
-
-
-# MEH
-def permutation_2(qr, qc, n):
-    ancillas = QuantumRegister(n)
-    qc.add(ancillas)
-    qc.h(ancillas)
-    for i in range(n):
-        for j in range(i + 1, n):
-            qc.cswap(ancillas[i], qr[i], qr[j])
-
-    qc.measure(qr, cr)
-
-
-# BAD
-def permutation_3(qr, qc, n):
-    ancillas = QuantumRegister(n)
-    qc.add(ancillas)
-    qc.h(ancillas)
-    for i in range(n):
-        for j in range(n - 1, i, -1):
-            qc.cswap(ancillas[i], qr[i], qr[j])
-            qc.cswap(ancillas[j], qr[j], qr[i])
-    for i in range(n - 1, 0, -1):
-        for j in range(n - 1, i, -1):
-            qc.cswap(ancillas[i], qr[i], qr[j])
-    # for i in range(n - 1, 1, -1):
-    #     qc.cswap(ancillas[i], qr[i], qr[i - 1])
-
-    qc.measure(qr, cr)
-
-
-# WIP
-def permutation_4(qr, qc, n):
-    ancillas = QuantumRegister(n)
-    qc.add(ancillas)
-    qc.h(ancillas)
-    for i in range(n):
-        for j in range(i, n):
-            if not (i == j):
-                qc.cswap(ancillas[i], qr[i], qr[j])
-                # qc.cswap(ancillas[j], qr[j], qr[i])
-
-    qc.measure(qr, cr)
-
-
-# WIP
-def permutation_5(qr, qc, n):
-    # get random permutation of n qubits
-    perm = list(np.random.permutation(n))
-    #initial position
-    init = list(range(n))
-    i = 0
-    while i < n:
-        if init[i] != perm[i]:
-            k = perm.index(init[i])
-            qc.swap(qr[n - i], qr[n - k])  #swap qubits
-            init[i], init[k] = init[k], init[i]  #marked swapped qubits
-        else:
-            i += 1
-
-    qc.measure(qr, cr)
 
 
 # OK
@@ -367,17 +292,7 @@ def main():
     qr, cr, qc = preparing_initial_states(n, r)
     from os import sys
     choice = int(sys.argv[1])
-    if choice == 1:
-        permutation_1(qr, qc, n)
-    elif choice == 2:
-        permutation_2(qr, qc, n)
-    elif choice == 3:
-        permutation_3(qr, qc, n)
-    elif choice == 4:
-        permutation_4(qr, qc, n)
-    elif choice == 5:
-        permutation_5(qr, qc, n)
-    elif choice == 6:
+    if choice == 6:
         permutation_6(qr, qc, n)
     elif choice == 7:
         permutation_7(qr, qc, n)
