@@ -4,13 +4,13 @@ _logger = logging.getLogger(__name__)
 
 
 class PrangeISD():
-    def __init__(self, h, syndrome, w, need_measures):
+    def __init__(self, h, syndrome, w, need_measures, mct_mode):
         self.h = h
         self.syndrome = syndrome
         self.w = w
         self.n = h.shape[1]
         self.r = h.shape[0]
-        self.mct_mode = 'advanced'
+        self.mct_mode = mct_mode
         # mode = 'basic'
         self.need_measures = need_measures
         _logger.info(
@@ -22,11 +22,11 @@ class PrangeISD():
     def _initialize_circuit(self):
         """
         Initialize the circuit with n qubits. The n is the same n of the H parity matrix and it is used to represent the choice of the column of the matrix.
-    
+
         :param n: The number of qubits
         :returns: the quantum circuit and the selectors_q register
         :rtype:
-    
+
         """
         from qiskit.aqua import utils
         from qiskit import QuantumCircuit
@@ -48,20 +48,26 @@ class PrangeISD():
 
         if self.mct_mode == 'advanced':
             self.ancillas_q = QuantumRegister(1, 'ancillas')
+            self.circuit.add_register(self.ancillas_q)
         elif self.mct_mode == 'basic':
-            self.ancillas_q = QuantumRegister(flip_q.size - 2, 'ancillas')
-
-        self.circuit.add_register(self.ancillas_q)
+            self.ancillas_q = QuantumRegister(self.flip_q.size - 2, 'ancillas')
+            self.circuit.add_register(self.ancillas_q)
+        elif self.mct_mode == 'noancilla':
+            # no ancilla to add
+            self.ancillas_q = None
+            pass
+        else:
+            raise Exception("Invalid mct mode selected")
 
     def _n_choose_w(self):
         """
         Given the n selectors_q QuantumRegister, initialize w qubits to 1. w is the weight of the error.
-    
+
         :param circuit: the quantum circuit
         :param selectors_q: the QuantumRegister representing the n columns selectors
         :param w: the error weight
         :returns: None
-    
+
         """
         _logger.debug("initializing {0} selectors qubits to 1".format(self.w))
         # Initialize 2 bits to 1, all the others to 0

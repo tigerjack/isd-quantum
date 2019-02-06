@@ -11,6 +11,14 @@ def usage():
     parser.add_argument(
         'w', metavar='w', type=int, help='The weight of the error.')
     parser.add_argument(
+        '-m',
+        '--mct_mode',
+        choices=['basic', 'advanced', 'noancilla'],
+        default='advanced',
+        help=
+        'Mode for the multi-controlled Toffoli gates. Basic uses a V shape simple CNOTs, but a huge number of ancillas. Advanced (default) uses just a single ancilla, while noancilla uses none. However, these last two modes, expecially noancilla, significantly increase the depth of the circuit and the number of gates.'
+    )
+    parser.add_argument(
         '-r',
         '--real',
         action='store_true',
@@ -120,6 +128,7 @@ def load_modules():
         _logger.handlers.clear()
     _logger.addHandler(_handler)
     _logger.setLevel(logging_level)
+    # TODO clean imports using __init__.py
     import sys
     sys.path.insert(
         0, os.path.abspath(
@@ -306,7 +315,7 @@ def main():
     else:
         _logger.debug("Measures needed")
         need_measures = True
-    pisd = PrangeISD(h, syndrome, w, need_measures)
+    pisd = PrangeISD(h, syndrome, w, need_measures, args.mct_mode)
     qc = pisd.build_circuit()
 
     s = args.export_qasm_file
