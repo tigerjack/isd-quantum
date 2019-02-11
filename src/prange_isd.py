@@ -37,15 +37,6 @@ class PrangeISD():
         self.selectors_q = QuantumRegister(self.n, 'select')
         self.sum_q = QuantumRegister(self.r, 'sum')
 
-        # TODO CEIL + 1 to support everything
-        from math import log, ceil
-        flips_counter = int(log(self.n, 2)) * int(self.n / 2)
-        _logger.debug("Number of hadamard qubits is {0}".format(flips_counter))
-        self.flip_q = QuantumRegister(flips_counter, "flip")
-        self.circuit.add_register(self.selectors_q)
-        self.circuit.add_register(self.sum_q)
-        self.circuit.add_register(self.flip_q)
-
         if self.mct_mode == 'advanced':
             self.ancillas_q = QuantumRegister(1, 'ancillas')
             self.circuit.add_register(self.ancillas_q)
@@ -58,92 +49,114 @@ class PrangeISD():
             pass
         else:
             raise Exception("Invalid mct mode selected")
+        # To compute flip_q size and the permutation pattern
+        self._permutation_pattern()
+        self.flip_q = QuantumRegister(self.permutation['n_flips'], "flip")
 
-    def _n_choose_w(self):
+        self.circuit.add_register(self.selectors_q)
+        self.circuit.add_register(self.flip_q)
+        self.circuit.add_register(self.sum_q)
+
+    def _permutation_pattern(self):
         """
-        Given the n selectors_q QuantumRegister, initialize w qubits to 1. w is the weight of the error.
-
-        :param circuit: the quantum circuit
-        :param selectors_q: the QuantumRegister representing the n columns selectors
-        :param w: the error weight
-        :returns: None
+        Compute the permuation pattern.
+        Basically, the idea is that we want all the possible combinations of n bits with weight w, i.e.
+        n choose w.
 
         """
-        _logger.debug("initializing {0} selectors qubits to 1".format(self.w))
-        # Initialize 2 bits to 1, all the others to 0
-        for i in range(self.w):
-            self.circuit.x(self.selectors_q[i])
+        from math import log, ceil
+        self.permutation = {}
+        steps = ceil(log(self.n, 2))
+        self.permutation['n_selectors'] = 2**steps
+        self.permutation['swaps_qubits_pattern'] = []
+        if (self.w == 0 or self.w == self.permutation['n_selectors']):
+            raise Exception("No combination is possible")
+
+        # Given the n selectors_q , we would like to
+        # initialize w qubits to 1 and then apply the swap algorithm.
+        # In this improved version, we carefully choose how to implement the swap
+        # algorithm: we don't need the full swap algorithm at each step, but only
+        # the swaps effectively used.
+        # Also, to improve the algorithm, if w is greater than half of the selectors,
+        # instead of initializing all the w qubits to 1 and then apply the algorithm,
+        # we initialize n-w qubits to 1, apply the algorithm and finally negate the
+        # result. Indeed (n choose w) == (n chooses (n-w))
+        if self.w > self.permutation['n_selectors'] / 2:
+            initial_swaps = self.permutation['n_selectors'] - self.w
+        else:
+            initial_swaps = self.w
+
+        self._permutation_pattern_support(
+            0, initial_swaps, int(self.permutation['n_selectors'] / 2), 0)
+        self.permutation['n_flips'] = len(
+            self.permutation['swaps_qubits_pattern'])
+        _logger.debug("Number of hadamard qubits is {0}".format(
+            self.permutation['n_flips']))
+
+        if (self.w > self.selectors_q.size / 2):
+            self.permutation[
+                'to_negate_range'] = self.selectors_q.size - self.w
+            self.permutation['negated_permutation'] = True
+        else:
+            self.permutation['to_negate_range'] = self.w
+            self.permutation['negated_permutation'] = False
+
+    def _permutation_pattern_support(self, start, end, swap_step, flip_q_idx):
+        _logger.debug("Start: {0}, end: {1}, swap_step: {2}".format(
+            start, end, swap_step))
+        if (swap_step == 0 or start >= end):
+            _logger.debug("Base case recursion")
+            return flip_q_idx
+
+        for_iter = 0
+        for i in range(start, end):
+            for_iter += 1
+            _logger.debug("cswap({2}, {0}, {1})".format(
+                i, i + swap_step, flip_q_idx))
+            self.permutation['swaps_qubits_pattern'].append((flip_q_idx, i,
+                                                             i + swap_step))
+            flip_q_idx += 1
+
+        for_iter_next = min(for_iter, int(swap_step / 2))
+        _logger.debug(
+            "Before recursion 1, start: {0}, end: {1}, swap_step: {2}, for_iter_next"
+            .format(start, end, swap_step, for_iter_next))
+        flip_q_idx = self._permutation_pattern_support(
+            start, start + for_iter_next, int(swap_step / 2), flip_q_idx)
+
+        _logger.debug(
+            "Before recursion, start: {0}, end: {1}, swap_step: {2}, for_iter_next {3}"
+            .format(start, end, swap_step, for_iter_next))
+        flip_q_idx = self._permutation_pattern_support(
+            start + swap_step, start + swap_step + for_iter_next,
+            int(swap_step / 2), flip_q_idx)
+        return flip_q_idx
 
     def _permutation(self):
-        ancilla_used = 0
-
-        # Hadamard all ancillas
+        self.circuit.barrier()
         self.circuit.h(self.flip_q)
-        self.circuit.barrier()
-        self._permutation_support(ancilla_used, 0, self.n, int(self.n / 2))
-        self.circuit.barrier()
+        # The idea is that if the condition is true, we negate the flips and do the combinations
+        for i in range(self.permutation['to_negate_range']):
+            self.circuit.x(self.selectors_q[i])
 
-    def _permutation_support(self, ancilla_used, start, end, swap_step):
-        _logger.debug("Start: {0}, end: {1}, swap_step: {2}".format(
-            start, end, swap_step))
-        if (swap_step == 0 or start >= end):
-            _logger.debug("Base case recursion")
-            return ancilla_used
-        for i in range(start, int((start + end) / 2)):
-            _logger.debug("Cswapping {0} & {1} using hadamard {2}".format(
-                i, i + swap_step, ancilla_used))
-            self.circuit.cswap(self.flip_q[ancilla_used], self.selectors_q[i],
-                               self.selectors_q[i + swap_step])
-            ancilla_used += 1
-        _logger.debug("Ancilla used after FOR {0}".format(ancilla_used))
-        ancilla_used = self._permutation_support(ancilla_used, start,
-                                                 int((start + end) / 2),
-                                                 int(swap_step / 2))
-        _logger.debug(
-            "Ancilla used after FIRST recursion {0}".format(ancilla_used))
-        ancilla_used = self._permutation_support(ancilla_used,
-                                                 int((start + end) / 2), end,
-                                                 int(swap_step / 2))
-        _logger.debug(
-            "Ancilla used after SECOND recursion {0}".format(ancilla_used))
-        return ancilla_used
+        for i in self.permutation['swaps_qubits_pattern']:
+            self.circuit.cswap(self.flip_q[i[0]], self.selectors_q[i[1]],
+                               self.selectors_q[i[2]])
+        if self.permutation['negated_permutation']:
+            self.circuit.x(self.selectors_q)
+        self.circuit.barrier()
 
     def _permutation_i(self):
-        ancilla_counter = len(self.flip_q)
-        _logger.debug(
-            "Number of hadamard qubits is {0}".format(ancilla_counter))
-
-        self._permutation_support_i(ancilla_counter - 1, 0, self.n,
-                                    int(self.n / 2))
         self.circuit.barrier()
-        # Hadamard all ancillas
+        if self.permutation['negated_permutation']:
+            self.circuit.x(self.selectors_q)
+        for i in self.permutation['swaps_qubits_pattern'][::-1]:
+            self.circuit.cswap(self.flip_q[i[0]], self.selectors_q[i[1]],
+                               self.selectors_q[i[2]])
+        for i in range(self.permutation['to_negate_range']):
+            self.circuit.x(self.selectors_q[i])
         self.circuit.h(self.flip_q)
         self.circuit.barrier()
-
-    def _permutation_support_i(self, ancilla_used, start, end, swap_step):
-        _logger.debug("Start: {0}, end: {1}, swap_step: {2}".format(
-            start, end, swap_step))
-        if (swap_step == 0 or start >= end):
-            _logger.debug("Base case recursion")
-            return ancilla_used
-        ancilla_used = self._permutation_support_i(ancilla_used,
-                                                   int((start + end) / 2), end,
-                                                   int(swap_step / 2))
-        _logger.debug(
-            "Ancilla used after FIRST recursion {0}".format(ancilla_used))
-        ancilla_used = self._permutation_support_i(ancilla_used, start,
-                                                   int((start + end) / 2),
-                                                   int(swap_step / 2))
-        _logger.debug(
-            "Ancilla used after SECOND recursion {0}".format(ancilla_used))
-        for i in range(int((start + end) / 2) - 1, start - 1, -1):
-            _logger.debug("Cswapping {0} & {1} using hadamard {2}".format(
-                i, i + swap_step, ancilla_used))
-            self.circuit.cswap(self.flip_q[ancilla_used], self.selectors_q[i],
-                               self.selectors_q[i + swap_step])
-            ancilla_used -= 1
-        _logger.debug("Ancilla used after FOR {0}".format(ancilla_used))
-        return ancilla_used
 
     def _matrix2gates(self):
         for i in range(self.n):
@@ -219,7 +232,6 @@ class PrangeISD():
 
     def build_circuit(self):
         self._initialize_circuit()
-        self._n_choose_w()
         self._permutation()
 
         # Number of grover iterations
@@ -235,13 +247,11 @@ class PrangeISD():
             self._syndrome2gates()
             self._matrix2gates_i()
             self._permutation_i()
-            self._n_choose_w()
 
             self._negate_for_inversion(self.flip_q)
             self._inversion_about_zero(self.flip_q[1:], self.flip_q[0])
             self._negate_for_inversion(self.flip_q)
 
-            self._n_choose_w()
             self._permutation()
 
         if self.need_measures:
