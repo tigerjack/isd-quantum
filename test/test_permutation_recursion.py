@@ -3,7 +3,7 @@ from os import getenv
 import logging
 from parameterized import parameterized
 import mock
-from experiments import permutation_recursion
+from src.utils import permutation_recursion
 from math import log, ceil
 
 
