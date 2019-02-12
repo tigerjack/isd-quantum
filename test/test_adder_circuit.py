@@ -7,7 +7,7 @@ from qiskit import BasicAer, execute
 
 
 class AdderTestCase(BasicTestCase):
-    def prepare_qubits(self, a_int, b_int):
+    def _prepare_qubits(self, a_int, b_int):
         bits = len("{0:b}".format(max(a_int, b_int)))
         a_str = bin(a_int)[2:].zfill(bits)
         b_str = bin(b_int)[2:].zfill(bits)
@@ -27,6 +27,14 @@ class AdderTestCase(BasicTestCase):
                 self.logger.debug("x(b[{0}])".format(bits - i - 1))
                 self.qc.x(self.b[bits - i - 1])
 
+    def _del_qubits(self):
+        del self.a
+        del self.b
+        del self.cin
+        del self.cout
+        del self.ans
+        del self.qc
+
     @parameterized.expand([
         ("3+2", 3, 2),
         ("7+9", 7, 9),
@@ -35,7 +43,7 @@ class AdderTestCase(BasicTestCase):
         ("24+7", 24, 7),
     ])
     def test_adder(self, name, a_int, b_int):
-        self.prepare_qubits(a_int, b_int)
+        self._prepare_qubits(a_int, b_int)
         self.assertEqual(self.a.size, self.b.size)
         self.assertEqual(self.cin.size, 1)
         self.assertEqual(self.cout.size, 1)
@@ -55,6 +63,7 @@ class AdderTestCase(BasicTestCase):
         expected = bin(a_int + b_int)[2:].zfill(self.a.size + 1)
         self.assertEqual(len(counts), 1)
         self.assertIn(expected, counts)
+        self._del_qubits()
 
     @parameterized.expand([
         ("3+2", 3, 2),
@@ -64,7 +73,7 @@ class AdderTestCase(BasicTestCase):
         ("24+7", 24, 7),
     ])
     def test_adder_reverse(self, name, a_int, b_int):
-        self.prepare_qubits(a_int, b_int)
+        self._prepare_qubits(a_int, b_int)
         self.assertEqual(self.a.size, self.b.size)
         self.assertEqual(self.cin.size, 1)
         self.assertEqual(self.cout.size, 1)
@@ -82,3 +91,5 @@ class AdderTestCase(BasicTestCase):
         expected = bin(b_int)[2:].zfill(self.a.size + 1)
         self.assertEqual(len(counts), 1)
         self.assertIn(expected, counts)
+        self._del_qubits()
+
