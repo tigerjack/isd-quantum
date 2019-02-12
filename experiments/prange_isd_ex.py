@@ -171,8 +171,8 @@ def get_backend(args, n_qubits):
     if args.backend_name == 'enough' and args.provider == 'ibmq':
         from qiskit.providers.ibmq import least_busy
         large_enough_devices = provider.backends(
-            filters=
-            lambda x: x.configuration().n_qubits >= n_qubits and x.configuration().simulator == False)
+            filters=lambda x: x.configuration(
+            ).n_qubits >= n_qubits and x.configuration().simulator == False)
         backend = least_busy(large_enough_devices)
     else:
         backend = provider.get_backend(args.backend_name)
@@ -186,27 +186,42 @@ def get_backend(args, n_qubits):
 
 def get_sample_matrix_and_random_syndrome(n, r):
     import numpy as np
-    h8 = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 0], [0, 1, 1], [1, 0, 0],
-                   [0, 1, 0], [0, 0, 1], [1, 0, 1]]).T
-    syndromes7 = np.array([[0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 0, 0],
-                           [1, 0, 1], [1, 1, 0], [1, 1, 1]])
-    error_patterns7 = np.array([[0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1, 0],
-                                [0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0],
-                                [0, 1, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0],
-                                [1, 0, 0, 0, 0, 0, 0]])
+    # d = 2, bad
+    h83 = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 0], [0, 1, 1], [1, 0, 0],
+                    [0, 1, 0], [0, 0, 1], [1, 0, 1]]).T
+    syndromes83 = np.array([[0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 0, 0],
+                            [1, 0, 1], [1, 1, 0], [1, 1, 1]])
+    error_patterns83 = np.array([[0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1, 0],
+                                 [0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0],
+                                 [0, 1, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0],
+                                 [1, 0, 0, 0, 0, 0, 0]])
 
-    h4 = np.array([[1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]).T
-    syndromes4 = np.array([[0, 1, 0], [1, 1, 1], [1, 0, 0], [0, 0, 1]])
-    if (n == 8 and r == 3):
-        h = h8
-        syndromes = syndromes7
+    # d = 3, useful
+    h43 = np.array([[1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]).T
+    syndromes43 = np.array([[0, 1, 0], [1, 1, 1], [1, 0, 0], [0, 0, 1]])
+
+    # d = 4
+    h84 = np.array([[1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 1, 1],
+                    [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]).T
+    # TODO
+    syndromes84 = np.array([[0, 1, 0, 1]])
+
+    if (n == 8 and r == 4):
+        h = h84
+        syndromes = syndromes84
+        d = 4
+    elif (n == 8 and r == 3):
+        h = h83
+        syndromes = syndromes83
+        d = 2
     elif (n == 4 and r == 3):
-        h = h4
-        syndromes = syndromes4
+        h = h43
+        syndromes = syndromes43
+        d = 3
     else:
         raise Exception("{0} x {1} parity matrix not implemented yet".format(
             r, n))
-    return h, syndromes[np.random.randint(syndromes.shape[0])]
+    return h, syndromes[np.random.randint(syndromes.shape[0])], d
 
 
 def run(qc, backend):
@@ -306,7 +321,7 @@ def main():
     w = args.w
     _logger.debug("w = {0}; n = {1}; r = {2}".format(w, n, r))
 
-    h, syndrome = get_sample_matrix_and_random_syndrome(n, r)
+    h, syndrome, d = get_sample_matrix_and_random_syndrome(n, r)
     _logger.debug("Syndrome is {0}".format(syndrome))
 
     if (args.backend_name in ('statevector_simulator', 'unitary_simulator')):
