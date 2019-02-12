@@ -93,3 +93,48 @@ class AdderTestCase(BasicTestCase):
         self.assertIn(expected, counts)
         self._del_qubits()
 
+    @parameterized.expand([
+        ("5_on_4bits", 5, 4),
+        ("5_on_3bits", 5, 3),
+        ("7_on_3bits", 7, 3),
+        ("7_on_5bits", 7, 5),
+    ])
+    def test_halves_sum(self, name, a_int, bits):
+        if bits % 2 == 1:
+            bits = bits + 1
+        self.logger.debug("n bits = {0}".format(bits))
+        half_bits = int(bits / 2)
+        self.logger.debug("half bits = {0}".format(half_bits))
+        a_str = bin(a_int)[2:].zfill(bits)
+        self.logger.debug("a as string is {0}".format(a_str))
+
+        a = QuantumRegister(bits, "a")
+        cin = QuantumRegister(1, "cin")
+        cout = QuantumRegister(1, "cout")
+        ans = ClassicalRegister(half_bits + 1, "ans")
+        qc = QuantumCircuit(a, cin, cout, ans)
+
+        # Initialize a to its value
+        for i in reversed(range(bits)):
+            if (a_str[i] == '1'):
+                self.logger.debug("x(a[{0}])".format(bits - i - 1))
+                qc.x(a[bits - i - 1])
+
+        adder.adder_circuit(qc, cin, [a[i] for i in range(half_bits)],
+                            [a[i] for i in range(half_bits, bits)], cout)
+
+        # Measure the output register in the computational basis
+        for j in range(half_bits, bits):
+            qc.measure(a[j], ans[j - half_bits])
+        qc.measure(cout[0], ans[half_bits])
+
+        counts = self.execute_qasm(qc)
+        self.logger.debug("counts {0}".format(counts))
+        a_half1_int = int(a_str[0:half_bits], 2)
+        a_half2_int = int(a_str[half_bits:bits], 2)
+        self.logger.debug("a first half = {0}".format(a_half1_int))
+        self.logger.debug("a second half = {0}".format(a_half2_int))
+        expected = bin(a_half1_int + a_half2_int)[2:].zfill(half_bits + 1)
+        self.logger.debug(" '{0}': expected".format(expected))
+        self.assertEqual(len(counts), 1)
+        self.assertIn(expected, counts)
