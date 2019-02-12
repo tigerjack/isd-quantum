@@ -9,6 +9,8 @@ def usage():
         type=int,
         help='The r (== n - k) of the parity matrix H.')
     parser.add_argument(
+        'd', metavar='d', type=int, help='The hamming distance.')
+    parser.add_argument(
         'w', metavar='w', type=int, help='The weight of the error.')
     parser.add_argument(
         '-m',
@@ -184,44 +186,13 @@ def get_backend(args, n_qubits):
     return backend
 
 
-def get_sample_matrix_and_random_syndrome(n, r):
-    import numpy as np
-    # d = 2, bad
-    h83 = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 0], [0, 1, 1], [1, 0, 0],
-                    [0, 1, 0], [0, 0, 1], [1, 0, 1]]).T
-    syndromes83 = np.array([[0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 0, 0],
-                            [1, 0, 1], [1, 1, 0], [1, 1, 1]])
-    error_patterns83 = np.array([[0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1, 0],
-                                 [0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0],
-                                 [0, 1, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0],
-                                 [1, 0, 0, 0, 0, 0, 0]])
-
-    # d = 3, useful
-    h43 = np.array([[1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]).T
-    syndromes43 = np.array([[0, 1, 0], [1, 1, 1], [1, 0, 0], [0, 0, 1]])
-
-    # d = 4
-    h84 = np.array([[1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 1, 1],
-                    [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]).T
-    # TODO
-    syndromes84 = np.array([[0, 1, 0, 1]])
-
-    if (n == 8 and r == 4):
-        h = h84
-        syndromes = syndromes84
-        d = 4
-    elif (n == 8 and r == 3):
-        h = h83
-        syndromes = syndromes83
-        d = 2
-    elif (n == 4 and r == 3):
-        h = h43
-        syndromes = syndromes43
-        d = 3
-    else:
-        raise Exception("{0} x {1} parity matrix not implemented yet".format(
-            r, n))
-    return h, syndromes[np.random.randint(syndromes.shape[0])], d
+def get_sample_matrix_and_random_syndrome(n, k, d, w):
+    _logger.info("Trying to get isd parameters for {0}, {1}, {2}, {3}".format(
+        n, k, d, w))
+    from isd.utils import rectangular_codes_hardcoded as rch
+    from numpy.random import randint
+    h, _, syndromes, _, _, _ = rch.get_isd_systematic_parameters(n, k, d, w)
+    return h, syndromes[randint(syndromes.shape[0])]
 
 
 def run(qc, backend):
@@ -318,10 +289,11 @@ def main():
     load_modules()
     n = args.n
     r = args.r
+    d = args.d
     w = args.w
     _logger.debug("w = {0}; n = {1}; r = {2}".format(w, n, r))
 
-    h, syndrome, d = get_sample_matrix_and_random_syndrome(n, r)
+    h, syndrome = get_sample_matrix_and_random_syndrome(n, n - r, d, w)
     _logger.debug("Syndrome is {0}".format(syndrome))
 
     if (args.backend_name in ('statevector_simulator', 'unitary_simulator')):
