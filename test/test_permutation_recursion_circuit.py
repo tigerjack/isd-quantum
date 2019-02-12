@@ -6,7 +6,7 @@ import mock
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer, execute
-from experiments import permutation_recursion
+from src.utils import permutation_recursion
 
 
 def draw_circuit(circuit, n, w):
