@@ -1,4 +1,3 @@
-import unittest
 import logging
 from parameterized import parameterized
 from src.utils import adder
@@ -42,7 +41,7 @@ class AdderTestCase(BasicTestCase):
         self.assertEqual(self.cout.size, 1)
         self.assertEqual(self.ans.size, self.a.size + 1)
         # Apply the adder
-        self.qc += adder.adder_circuit(self.cin, self.a, self.b, self.cout)
+        adder.adder_circuit(self.qc, self.cin, self.a, self.b, self.cout)
 
         # Measure the output register in the computational basis
         for j in range(self.b.size):
@@ -70,8 +69,8 @@ class AdderTestCase(BasicTestCase):
         self.assertEqual(self.cin.size, 1)
         self.assertEqual(self.cout.size, 1)
         self.assertEqual(self.ans.size, self.a.size + 1)
-        self.qc += adder.adder_circuit(self.cin, self.a, self.b, self.cout)
-        self.qc += adder.adder_circuit_i(self.cin, self.a, self.b, self.cout)
+        adder.adder_circuit(self.qc, self.cin, self.a, self.b, self.cout)
+        adder.adder_circuit_i(self.qc, self.cin, self.a, self.b, self.cout)
         for j in range(self.b.size):
             self.qc.measure(self.b[j], self.ans[j])
         self.qc.measure(self.cout[0], self.ans[self.b.size])
