@@ -1,6 +1,6 @@
 import logging
 from parameterized import parameterized
-from src.utils import adder
+from isdquantum.utils import adder
 from test.common import BasicTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import BasicAer, execute
