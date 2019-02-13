@@ -1,6 +1,6 @@
 def usage():
     import argparse
-    parser = argparse.ArgumentParser(description="Prange isd algorithm")
+    parser = argparse.ArgumentParser(description="Bruteforce isd algorithm")
     parser.add_argument(
         'n', metavar='n', type=int, help='The n of the parity matrix H.')
     parser.add_argument(
@@ -131,13 +131,15 @@ def load_modules():
     _logger.addHandler(_handler)
     _logger.setLevel(logging_level)
     # TODO clean imports using __init__.py
-    import sys
-    sys.path.insert(
-        0, os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '..', 'src')))
-    global PrangeISD
-    from prange_isd import PrangeISD
-    prange_isd_logger = logging.getLogger('prange_isd')
+    # import sys
+    # sys.path.insert(
+    #     0, os.path.abspath(
+    #         os.path.join(os.path.dirname(__file__), '..', 'src')))
+    global BruteforceISD
+    # from prange_isd import PrangeISD
+    from isdquantum.methods.bruteforce import BruteforceISD
+    #prange_isd_logger = logging.getLogger('prange_isd')
+    prange_isd_logger = logging.getLogger('isd.quantum.methods.bruteforce')
     prange_isd_logger.setLevel(logging_level)
     prange_isd_logger.addHandler(_handler)
 
@@ -189,7 +191,7 @@ def get_backend(args, n_qubits):
 def get_sample_matrix_and_random_syndrome(n, k, d, w):
     _logger.info("Trying to get isd parameters for {0}, {1}, {2}, {3}".format(
         n, k, d, w))
-    from isd.utils import rectangular_codes_hardcoded as rch
+    from isdclassic.utils import rectangular_codes_hardcoded as rch
     from numpy.random import randint
     h, _, syndromes, _, _, _ = rch.get_isd_systematic_parameters(n, k, d, w)
     return h, syndromes[randint(syndromes.shape[0])]
@@ -302,7 +304,7 @@ def main():
     else:
         _logger.debug("Measures needed")
         need_measures = True
-    pisd = PrangeISD(h, syndrome, w, need_measures, args.mct_mode)
+    pisd = BruteforceISD(h, syndrome, w, need_measures, args.mct_mode)
     qc = pisd.build_circuit()
 
     s = args.export_qasm_file

@@ -3,7 +3,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-class PrangeISD():
+class BruteforceISD():
     def __init__(self, h, syndrome, w, need_measures, mct_mode):
         self.h = h
         self.syndrome = syndrome
