@@ -1,6 +1,6 @@
 def usage():
     import argparse
-    parser = argparse.ArgumentParser(description="Prange isd algorithm")
+    parser = argparse.ArgumentParser(description="Bruteforce isd algorithm")
     parser.add_argument(
         'n', metavar='n', type=int, help='The n of the parity matrix H.')
     parser.add_argument(
@@ -8,6 +8,8 @@ def usage():
         metavar='r',
         type=int,
         help='The r (== n - k) of the parity matrix H.')
+    parser.add_argument(
+        'd', metavar='d', type=int, help='The hamming distance.')
     parser.add_argument(
         'w', metavar='w', type=int, help='The weight of the error.')
     parser.add_argument(
@@ -129,13 +131,15 @@ def load_modules():
     _logger.addHandler(_handler)
     _logger.setLevel(logging_level)
     # TODO clean imports using __init__.py
-    import sys
-    sys.path.insert(
-        0, os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '..', 'src')))
-    global PrangeISD
-    from prange_isd import PrangeISD
-    prange_isd_logger = logging.getLogger('prange_isd')
+    # import sys
+    # sys.path.insert(
+    #     0, os.path.abspath(
+    #         os.path.join(os.path.dirname(__file__), '..', 'src')))
+    global BruteforceISD
+    # from prange_isd import PrangeISD
+    from isdquantum.methods.bruteforce import BruteforceISD
+    #prange_isd_logger = logging.getLogger('prange_isd')
+    prange_isd_logger = logging.getLogger('isd.quantum.methods.bruteforce')
     prange_isd_logger.setLevel(logging_level)
     prange_isd_logger.addHandler(_handler)
 
@@ -184,44 +188,13 @@ def get_backend(args, n_qubits):
     return backend
 
 
-def get_sample_matrix_and_random_syndrome(n, r):
-    import numpy as np
-    # d = 2, bad
-    h83 = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 0], [0, 1, 1], [1, 0, 0],
-                    [0, 1, 0], [0, 0, 1], [1, 0, 1]]).T
-    syndromes83 = np.array([[0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 0, 0],
-                            [1, 0, 1], [1, 1, 0], [1, 1, 1]])
-    error_patterns83 = np.array([[0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1, 0],
-                                 [0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0],
-                                 [0, 1, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0],
-                                 [1, 0, 0, 0, 0, 0, 0]])
-
-    # d = 3, useful
-    h43 = np.array([[1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]).T
-    syndromes43 = np.array([[0, 1, 0], [1, 1, 1], [1, 0, 0], [0, 0, 1]])
-
-    # d = 4
-    h84 = np.array([[1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 1, 1],
-                    [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]).T
-    # TODO
-    syndromes84 = np.array([[0, 1, 0, 1]])
-
-    if (n == 8 and r == 4):
-        h = h84
-        syndromes = syndromes84
-        d = 4
-    elif (n == 8 and r == 3):
-        h = h83
-        syndromes = syndromes83
-        d = 2
-    elif (n == 4 and r == 3):
-        h = h43
-        syndromes = syndromes43
-        d = 3
-    else:
-        raise Exception("{0} x {1} parity matrix not implemented yet".format(
-            r, n))
-    return h, syndromes[np.random.randint(syndromes.shape[0])], d
+def get_sample_matrix_and_random_syndrome(n, k, d, w):
+    _logger.info("Trying to get isd parameters for {0}, {1}, {2}, {3}".format(
+        n, k, d, w))
+    from isdclassic.utils import rectangular_codes_hardcoded as rch
+    from numpy.random import randint
+    h, _, syndromes, _, _, _ = rch.get_isd_systematic_parameters(n, k, d, w)
+    return h, syndromes[randint(syndromes.shape[0])]
 
 
 def run(qc, backend):
@@ -318,10 +291,11 @@ def main():
     load_modules()
     n = args.n
     r = args.r
+    d = args.d
     w = args.w
     _logger.debug("w = {0}; n = {1}; r = {2}".format(w, n, r))
 
-    h, syndrome, d = get_sample_matrix_and_random_syndrome(n, r)
+    h, syndrome = get_sample_matrix_and_random_syndrome(n, n - r, d, w)
     _logger.debug("Syndrome is {0}".format(syndrome))
 
     if (args.backend_name in ('statevector_simulator', 'unitary_simulator')):
@@ -330,7 +304,7 @@ def main():
     else:
         _logger.debug("Measures needed")
         need_measures = True
-    pisd = PrangeISD(h, syndrome, w, need_measures, args.mct_mode)
+    pisd = BruteforceISD(h, syndrome, w, need_measures, args.mct_mode)
     qc = pisd.build_circuit()
 
     s = args.export_qasm_file
