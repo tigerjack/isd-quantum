@@ -34,7 +34,6 @@ class BruteforceISD():
         self.circuit = QuantumCircuit()
         _logger.debug("creating n = {0} qubits for selection".format(self.n))
 
-        self.selectors_q = QuantumRegister(self.n, 'select')
         self.sum_q = QuantumRegister(self.r, 'sum')
 
         if self.mct_mode == 'advanced':
@@ -51,6 +50,8 @@ class BruteforceISD():
             raise Exception("Invalid mct mode selected")
         # To compute flip_q size and the permutation pattern
         self._permutation_pattern()
+        self.selectors_q = QuantumRegister(self.permutation['n_lines'],
+                                           'select')
         self.flip_q = QuantumRegister(self.permutation['n_flips'], "flip")
 
         self.circuit.add_register(self.selectors_q)
@@ -64,42 +65,10 @@ class BruteforceISD():
         n choose w.
 
         """
-        from math import log, ceil
-        self.permutation = {}
-        steps = ceil(log(self.n, 2))
-        self.permutation['n_selectors'] = 2**steps
-        self.permutation['swaps_qubits_pattern'] = []
-        if (self.w == 0 or self.w == self.permutation['n_selectors']):
-            raise Exception("No combination is possible")
-
-        # Given the n selectors_q , we would like to
-        # initialize w qubits to 1 and then apply the swap algorithm.
-        # In this improved version, we carefully choose how to implement the swap
-        # algorithm: we don't need the full swap algorithm at each step, but only
-        # the swaps effectively used.
-        # Also, to improve the algorithm, if w is greater than half of the selectors,
-        # instead of initializing all the w qubits to 1 and then apply the algorithm,
-        # we initialize n-w qubits to 1, apply the algorithm and finally negate the
-        # result. Indeed (n choose w) == (n chooses (n-w))
-        if self.w > self.permutation['n_selectors'] / 2:
-            initial_swaps = self.permutation['n_selectors'] - self.w
-        else:
-            initial_swaps = self.w
-
-        self._permutation_pattern_support(
-            0, initial_swaps, int(self.permutation['n_selectors'] / 2), 0)
-        self.permutation['n_flips'] = len(
-            self.permutation['swaps_qubits_pattern'])
-        _logger.debug("Number of hadamard qubits is {0}".format(
-            self.permutation['n_flips']))
-
-        if (self.w > self.selectors_q.size / 2):
-            self.permutation[
-                'to_negate_range'] = self.selectors_q.size - self.w
-            self.permutation['negated_permutation'] = True
-        else:
-            self.permutation['to_negate_range'] = self.w
-            self.permutation['negated_permutation'] = False
+        from isdquantum.utils import permutation_recursion
+        permutation_dict = permutation_recursion.get_all_n_bits_weight_r(
+            self.n, self.w, 'permutation')
+        self.permutation = permutation_dict
 
     def _permutation_pattern_support(self, start, end, swap_step, flip_q_idx):
         _logger.debug("Start: {0}, end: {1}, swap_step: {2}".format(
@@ -113,8 +82,8 @@ class BruteforceISD():
             for_iter += 1
             _logger.debug("cswap({2}, {0}, {1})".format(
                 i, i + swap_step, flip_q_idx))
-            self.permutation['swaps_qubits_pattern'].append((flip_q_idx, i,
-                                                             i + swap_step))
+            self.permutation['swaps_pattern'].append((flip_q_idx, i,
+                                                      i + swap_step))
             flip_q_idx += 1
 
         for_iter_next = min(for_iter, int(swap_step / 2))
@@ -135,11 +104,10 @@ class BruteforceISD():
     def _permutation(self):
         self.circuit.barrier()
         self.circuit.h(self.flip_q)
-        # The idea is that if the condition is true, we negate the flips and do the combinations
         for i in range(self.permutation['to_negate_range']):
             self.circuit.x(self.selectors_q[i])
 
-        for i in self.permutation['swaps_qubits_pattern']:
+        for i in self.permutation['swaps_pattern']:
             self.circuit.cswap(self.flip_q[i[0]], self.selectors_q[i[1]],
                                self.selectors_q[i[2]])
         if self.permutation['negated_permutation']:
@@ -150,7 +118,7 @@ class BruteforceISD():
         self.circuit.barrier()
         if self.permutation['negated_permutation']:
             self.circuit.x(self.selectors_q)
-        for i in self.permutation['swaps_qubits_pattern'][::-1]:
+        for i in self.permutation['swaps_pattern'][::-1]:
             self.circuit.cswap(self.flip_q[i[0]], self.selectors_q[i[1]],
                                self.selectors_q[i[2]])
         for i in range(self.permutation['to_negate_range']):

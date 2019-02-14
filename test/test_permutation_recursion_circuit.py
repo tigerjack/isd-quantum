@@ -10,6 +10,7 @@ from isdquantum.utils import permutation_recursion
 
 
 def draw_circuit(circuit, n, w):
+    pass
     from qiskit.tools.visualization import circuit_drawer
     circuit_drawer(
         circuit, filename='test_rec_{0}_{1}'.format(n, w), output='mpl')
@@ -31,12 +32,12 @@ class PermRecTestCase(unittest.TestCase):
         cls.logger.addHandler(handler)
         cls.logger.setLevel(logging_level)
 
-        perm_logger = logging.getLogger('experiments.permutation_recursion')
+        perm_logger = logging.getLogger(
+            'isdquantum.utils.permutation_recursion')
         perm_logger.addHandler(handler)
         perm_logger.setLevel(logging_level)
 
     def setUp(self):
-        self.prange_isd_mock = mock.Mock()
         self.circuit = QuantumCircuit()
 
     @parameterized.expand([
@@ -66,37 +67,34 @@ class PermRecTestCase(unittest.TestCase):
     # @unittest.skip("No reason")
     def test_patterns(self, name, n, w, reverse):
         try:
-            self.prange_isd_mock.n = n
-            self.prange_isd_mock.w = w
-            permutation_recursion.permutation_pattern(self.prange_isd_mock)
-            ##
-            self.logger.debug(self.prange_isd_mock.permutation['n_flips'])
-            self.logger.debug(self.prange_isd_mock.permutation['n_selectors'])
-            selectors_q = QuantumRegister(
-                self.prange_isd_mock.permutation['n_selectors'], 'sel')
-            flip_q = QuantumRegister(
-                self.prange_isd_mock.permutation['n_flips'], 'n_flips')
+            permutation_dict = permutation_recursion._ncr_permutation_pattern(
+                n, w)
+            self.logger.debug("n_flips = {0}".format(
+                permutation_dict['n_flips']))
+            self.logger.debug("n_lines = {0}".format(
+                permutation_dict['n_lines']))
+            selectors_q = QuantumRegister(permutation_dict['n_lines'], 'sel')
+            flip_q = QuantumRegister(permutation_dict['n_flips'], 'flips')
             self.circuit.add_register(selectors_q)
             self.circuit.add_register(flip_q)
             self.logger.debug(flip_q.size)
 
             self.circuit.h(flip_q)
-            if (w > selectors_q.size / 2):
-                to_negate_range = selectors_q.size - w
-            else:
-                to_negate_range = w
-            for i in range(to_negate_range):
+            # if (w > selectors_q.size / 2):
+            #     to_negate_range = selectors_q.size - w
+            # else:
+            #     to_negate_range = w
+            for i in range(permutation_dict['to_negate_range']):
                 self.circuit.x(selectors_q[i])
 
-            for i in self.prange_isd_mock.permutation['swaps_qubits_pattern']:
+            for i in permutation_dict['swaps_pattern']:
                 self.circuit.cswap(flip_q[i[0]], selectors_q[i[1]],
                                    selectors_q[i[2]])
             if reverse:
-                for i in self.prange_isd_mock.permutation[
-                        'swaps_qubits_pattern'][::-1]:
+                for i in permutation_dict['swaps_pattern'][::-1]:
                     self.circuit.cswap(flip_q[i[0]], selectors_q[i[1]],
                                        selectors_q[i[2]])
-            if (w > selectors_q.size / 2):
+            if (permutation_dict['negated_permutation']):
                 self.circuit.x(selectors_q)
 
             # QASM SIMULATOR

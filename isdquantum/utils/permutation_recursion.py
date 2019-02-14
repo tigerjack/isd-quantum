@@ -1,170 +1,93 @@
 from math import ceil, log
 import logging
 
-_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
-def permutation_pattern(self):
-    self.permutation = {}
-    steps = ceil(log(self.n, 2))
-    self.permutation['n_selectors'] = 2**steps
-    self.permutation['swaps_qubits_pattern'] = []
-    if (self.w == 0 or self.w == self.permutation['n_selectors']):
+# It allows to compute all combinations of length n and weight r,
+# i.e. all combinations of length n w/ r bits set to 1.
+def get_all_n_bits_weight_r(n, r, mode):
+    if (mode == 'permutation'):
+        return _ncr_permutation_pattern(n, r)
+    else:
+        raise Exception("Mode not implemented yet")
+
+
+# Given how it's built, n should be a power of 2, or, at least,
+# it returns the combination with n as power of 2.
+# If the original n is not a power of 2, you may want to adapt the
+# circuit avoiding the use of the last bits.
+# Returns a dictionary containing the:
+# 1. n_lines, the number of lines required,
+# 2. n_flips, the number of fair coin flips required to obtain the full permutation
+# 2. the swaps_pattern, i.e. a list of tuples containing:
+#  - an integer signalling which flip to use
+#  - the first line involved in the swap
+#  - the second line involved in the swap
+# 3. to_negate_range, i.e. which bits are initialized to 1 to apply the
+#    permutation pattern
+# 4. negated_permutation, a boolean signaling if the pattern is inversed
+#    To reduce the number of flips, if r > (n/2), instead of initializing
+#    r bits to 1 and then apply the permutation network, we initialize
+#    n - r bits to 1 and apply the permutation network. In the latter case,
+#    the obtained permutation should be negated.
+def _ncr_permutation_pattern(n, r):
+    permutation_dict = {}
+    steps = ceil(log(n, 2))
+    permutation_dict['n_lines'] = 2**steps
+    permutation_dict['swaps_pattern'] = []
+    if (r == 0 or r == permutation_dict['n_lines']):
         raise Exception("No combination is possible")
 
     # bcz ncr(8;5) == ncr(8;3)
-    if self.w > self.permutation[
-            'n_selectors'] / 2 and not self.w == self.permutation[
-                'n_selectors']:
-        initial_swaps = self.permutation['n_selectors'] - self.w
+    if r > permutation_dict['n_lines'] / 2:
+        initial_swaps = permutation_dict['n_lines'] - r
     else:
-        initial_swaps = self.w
+        initial_swaps = r
 
-    _permutation_pattern_support(self, 0, initial_swaps,
-                                 int(self.permutation['n_selectors'] / 2), 0)
-    self.permutation['n_flips'] = len(self.permutation['swaps_qubits_pattern'])
+    _permutation_pattern_support(0, initial_swaps,
+                                 int(permutation_dict['n_lines'] / 2), 0,
+                                 permutation_dict)
+    permutation_dict['n_flips'] = len(permutation_dict['swaps_pattern'])
+
+    if (r > permutation_dict['n_lines'] / 2):
+        permutation_dict['to_negate_range'] = permutation_dict['n_lines'] - r
+        permutation_dict['negated_permutation'] = True
+    else:
+        permutation_dict['to_negate_range'] = r
+        permutation_dict['negated_permutation'] = False
+    return permutation_dict
 
 
-def _permutation_pattern_support(self, start, end, swap_step, flip_q_idx):
-    _logger.debug("Start: {0}, end: {1}, swap_step: {2}".format(
+def _permutation_pattern_support(start, end, swap_step, flip_q_idx,
+                                 permutation_dict):
+    logger.debug("Start: {0}, end: {1}, swap_step: {2}".format(
         start, end, swap_step))
     if (swap_step == 0 or start >= end):
-        _logger.debug("Base case recursion")
+        logger.debug("Base case recursion")
         return flip_q_idx
 
     for_iter = 0
     for i in range(start, end):
         for_iter += 1
-        _logger.info("cswap({2}, {0}, {1})".format(i, i + swap_step,
-                                                   flip_q_idx))
-        self.permutation['swaps_qubits_pattern'].append((flip_q_idx, i,
-                                                         i + swap_step))
+        logger.info("cswap({2}, {0}, {1})".format(i, i + swap_step,
+                                                  flip_q_idx))
+        permutation_dict['swaps_pattern'].append((flip_q_idx, i,
+                                                  i + swap_step))
         flip_q_idx += 1
 
     for_iter_next = min(for_iter, int(swap_step / 2))
-    _logger.debug(
+    logger.debug(
         "Before recursion 1, start: {0}, end: {1}, swap_step: {2}, for_iter_next"
         .format(start, end, swap_step, for_iter_next))
-    flip_q_idx = _permutation_pattern_support(self, start,
-                                              start + for_iter_next,
-                                              int(swap_step / 2), flip_q_idx)
+    flip_q_idx = _permutation_pattern_support(start, start + for_iter_next,
+                                              int(swap_step / 2), flip_q_idx,
+                                              permutation_dict)
 
-    _logger.debug(
+    logger.debug(
         "Before recursion, start: {0}, end: {1}, swap_step: {2}, for_iter_next {3}"
         .format(start, end, swap_step, for_iter_next))
     flip_q_idx = _permutation_pattern_support(
-        self, start + swap_step, start + swap_step + for_iter_next,
-        int(swap_step / 2), flip_q_idx)
+        start + swap_step, start + swap_step + for_iter_next,
+        int(swap_step / 2), flip_q_idx, permutation_dict)
     return flip_q_idx
-
-
-def _permutation(self):
-    _logger.info("Swaps pattern {0}".format(self.swaps_pattern))
-    # Hadamard all ancillas
-    self.circuit.h(self.flip_q)
-    self.circuit.barrier()
-    _permutation_support(self, 0, self.n, int(self.n / 2), 0, 0, False)
-    self.circuit.barrier()
-
-
-def _permutation_support(self, start, end, swap_step, swaps_pattern_idx,
-                         flip_q_idx, divide):
-    _logger.debug(
-        "Start: {0}, end: {1}, swap_step: {2}, swap_pattern_idx: {3}, divide: {4}"
-        .format(start, end, swap_step, swaps_pattern_idx, divide))
-    ancilla_step = 0
-    if (swap_step == 0 or start >= end):
-        _logger.debug("Base case recursion")
-        _logger.debug("<" * swaps_pattern_idx)
-        return flip_q_idx
-    for i in range(start, int((start + end) / 2)):
-        _logger.info("Cswapping {0} & {1} using flip_q {2}".format(
-            i, i + swap_step, flip_q_idx))
-        self.circuit.cswap(self.flip_q[flip_q_idx], self.selectors_q[i],
-                           self.selectors_q[i + swap_step])
-        flip_q_idx += 1
-        ancilla_step += 1
-        for_exit_condition = (
-            not divide
-            and self.swaps_pattern[swaps_pattern_idx] == ancilla_step) or (
-                divide
-                and self.swaps_pattern[swaps_pattern_idx] / 2 == ancilla_step)
-        if for_exit_condition:
-            _logger.debug("exiting for bcz of swaps pattern")
-            break
-    swaps_pattern_idx += 1
-    _logger.debug(">" * swaps_pattern_idx + "1")
-    flip_q_idx = _permutation_support(self, start, int((start + end) / 2),
-                                      int(swap_step / 2), swaps_pattern_idx,
-                                      flip_q_idx, True)
-
-    _logger.debug(">" * swaps_pattern_idx + "2")
-    flip_q_idx = _permutation_support(self, int((start + end) / 2), end,
-                                      int(swap_step / 2), swaps_pattern_idx,
-                                      flip_q_idx, True)
-    return flip_q_idx
-
-
-def _permutation_support_i(self, start, end, swap_step, swaps_pattern_idx,
-                           flip_q_idx, divide):
-    _logger.debug(">" * (len(self.swaps_pattern) - swaps_pattern_idx))
-    _logger.debug(
-        "Start: {0}, end: {1}, swap_step: {2}, swap_pattern_idx: {3}, flip_q_idx: {4}, divide: {5}"
-        .format(start, end, swap_step, swaps_pattern_idx, flip_q_idx, divide))
-    if (swap_step == 0 or start >= end):
-        _logger.debug("Base case recursion")
-        _logger.debug("<" * (len(self.swaps_pattern) - swaps_pattern_idx))
-        return flip_q_idx
-    ancilla_step = 0
-    _logger.debug("1st recursion")
-    # if self.swaps_pattern[swaps_pattern_idx + 1] > self.max_swaps_per_step / 2:
-    flip_q_idx = _permutation_support_i(self, int(
-        (start + end) / 2), end, int(swap_step / 2), swaps_pattern_idx + 1,
-                                        flip_q_idx, True)
-    _logger.debug(">" * (len(self.swaps_pattern) - swaps_pattern_idx - 1) +
-                  "...")
-
-    _logger.debug("2nd recursion")
-    flip_q_idx = _permutation_support_i(self, start, int(
-        (start + end) / 2), int(swap_step / 2), swaps_pattern_idx + 1,
-                                        flip_q_idx, True)
-    _logger.debug(">" * (len(self.swaps_pattern) - swaps_pattern_idx - 1) +
-                  "...")
-
-    range_start = int((start + end) / 2) - 1
-    #- self.max_swaps_per_step + self.swaps_pattern[swaps_pattern_idx]
-    range_end = start - 1
-    #- self.max_swaps_per_step + self.swaps_pattern[swaps_pattern_idx]
-    _logger.debug("start {0}, end {1}".format(start, end))
-    _logger.debug("swap at step {0}".format(
-        self.swaps_pattern[swaps_pattern_idx]))
-    _logger.debug("range start {0}, range end {1}".format(
-        range_start, range_end))
-    for i in range(range_start, range_end, -1):
-        _logger.info("Cswapping {0} & {1} using flip_q {2}".format(
-            i, i + swap_step, flip_q_idx))
-        self.circuit.cswap(self.flip_q[flip_q_idx], self.selectors_q[i],
-                           self.selectors_q[i + swap_step])
-        flip_q_idx -= 1
-        ancilla_step += 1
-        for_exit_condition = (
-            not divide
-            and self.swaps_pattern[swaps_pattern_idx] == ancilla_step) or (
-                divide
-                and self.swaps_pattern[swaps_pattern_idx] / 2 == ancilla_step)
-        if for_exit_condition:
-            _logger.debug("exiting for bcz of swaps pattern")
-            break
-    _logger.debug("<" * (len(self.swaps_pattern) - swaps_pattern_idx - 1))
-    return flip_q_idx
-
-
-def _permutation_i(self):
-    _logger.info("Swaps pattern {0}".format(self.swaps_pattern))
-    _logger.debug("Max swaps per step {0}".format(self.max_swaps_per_step))
-    _permutation_support_i(self, 0, self.n, int(self.n / 2), 0,
-                           len(self.flip_q) - 1, False)
-    self.circuit.barrier()
-    # Hadamard all ancillas
-    self.circuit.h(self.flip_q)
-    self.circuit.barrier()

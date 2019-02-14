@@ -11,12 +11,6 @@ from isdclassic.utils import rectangular_codes_hardcoded as rch
 class PermutationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # mock.Mock.permutation_pattern = permutation_recursion.permutation_pattern
-        # mock.Mock._init_permutation_parameters = permutation_recursion._init_permutation_parameters
-        # mock.Mock._init_required_permutation_selectors = permutation_recursion._init_required_permutation_selectors
-        # mock.Mock._init_swaps_per_step_pattern = permutation_recursion._init_swaps_per_step_pattern
-        # mock.Mock._init_required_flips = permutation_recursion._init_required_flips
-
         cls.logger = logging.getLogger(cls.__name__)
         if not getenv('LOG_LEVEL'):
             return
@@ -29,23 +23,12 @@ class PermutationTest(unittest.TestCase):
         cls.logger.addHandler(handler)
         cls.logger.setLevel(logging_level)
 
-        perm_logger = logging.getLogger('experiments.permutation_recursion')
+        perm_logger = logging.getLogger(
+            'isdquantum.utils.permutation_recursion')
         perm_logger.addHandler(handler)
         perm_logger.setLevel(logging_level)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-        # del mock.Mock.permutation_pattern
-        # del mock.Mock._init_permutation_parameters
-        # del mock.Mock._init_required_permutation_selectors
-        # del mock.Mock._init_swaps_per_step_pattern
-        # del mock.Mock._init_required_flips
-
-    def setUp(self):
-        self.prange_isd_mock = mock.Mock()
-
-    # Support method
+    # Support method to compare
     def _init_swaps_per_step_pattern(self, n, w):
         steps = ceil(log(n, 2))
         selectors = 2**steps
@@ -58,10 +41,10 @@ class PermutationTest(unittest.TestCase):
         for i in range(steps - 1):
             swaps_per_step_i = min(swaps_per_step_i * 2, max_swaps_per_step)
             swaps_step_pattern.append(swaps_per_step_i)
-        # self.permutation['swaps_step_pattern'] = swaps_step_pattern
         self.logger.debug(
             "swaps_step_pattern is {0}".format(swaps_step_pattern))
         self.n_flips = sum(swaps_step_pattern)
+        self.logger.debug("n_flips is {0}".format(sum(swaps_step_pattern)))
 
     @parameterized.expand([
         ("n4w1", 4, 1),
@@ -86,16 +69,10 @@ class PermutationTest(unittest.TestCase):
         ("n64w33", 64, 23),
     ])
     def test_patterns(self, name, n, w):
-        self.logger.info("")
         self._init_swaps_per_step_pattern(n, w)
-        self.prange_isd_mock.n = n
-        self.prange_isd_mock.w = w
-        permutation_recursion.permutation_pattern(self.prange_isd_mock)
+        pattern = permutation_recursion._ncr_permutation_pattern(n, w)
         try:
-            self.assertEqual(
-                self.n_flips,
-                len(self.prange_isd_mock.permutation['swaps_qubits_pattern']))
+            self.assertEqual(self.n_flips, len(pattern['swaps_pattern']))
         except:
-            self.logger.error(
-                self.prange_isd_mock.permutation['swaps_qubits_pattern'])
+            self.logger.error(pattern['swaps_pattern'])
             raise
