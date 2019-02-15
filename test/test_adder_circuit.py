@@ -187,3 +187,97 @@ class AdderTestCase(BasicTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn(expected, counts)
         self._del_qubits()
+
+    @parameterized.expand([
+        ("1_on_4", 1, 4),
+        ("2_on_4", 2, 4),
+        ("3_on_4", 3, 4),
+        ("4_on_4", 4, 4),
+        ("5_on_4", 5, 4),
+        ("6_on_4", 6, 4),
+        ("7_on_4", 7, 4),
+        ("8_on_5", 8, 5),
+        ("9_on_5", 9, 5),
+        ("10_on_5", 10, 5),
+        ("11_on_5", 11, 5),
+        ("12_on_5", 12, 5),
+    ])
+    # @unittest.skip("No reason")
+    def test_weight_equals_w_hadamards(self, name, eq_int, bits):
+        ### Prepare qubits
+        ######
+        if bits % 2 == 1:
+            bits = bits + 1
+        half_bits = int(bits / 2)
+        self._check_enough_bits(eq_int, half_bits + 1)
+        equal_str = bin(eq_int)[2:].zfill(half_bits + 1)
+        self.logger.debug("equal_str = {0}".format(equal_str))
+
+        a = QuantumRegister(half_bits, "a")
+        b = QuantumRegister(half_bits, "b")
+        cin = QuantumRegister(1, "cin")
+        cout = QuantumRegister(1, "cout")
+        eq = QuantumRegister(1, 'eq')
+        anc = QuantumRegister(1, 'anc')
+        # Have to measure a, b and eq
+        ans = ClassicalRegister(a.size + b.size + eq.size, "ans")
+        qc = QuantumCircuit(a, b, cin, cout, eq, anc, ans)
+
+        # Assert
+        self._check_adder_inputs(a, b, cin, cout)
+        self.assertEqual(ans.size, a.size + b.size + eq.size)
+
+        # Hadamards all qubits
+        qc.h(a)
+        qc.h(b)
+        # Apply the adder
+        adder.adder_circuit(qc, cin, a, b, cout)
+        qc.barrier()
+
+        # Add the negated equal_str to {b, cout}.
+        if equal_str[0] == '0':
+            self.logger.debug("x(cout[0])")
+            qc.x(cout[0])
+        for i in range(1, len(equal_str)):
+            if (equal_str[i] == '0'):
+                self.logger.debug("x(b[{0}])".format(half_bits - i))
+                qc.x(b[half_bits - i])
+        qc.barrier()
+
+        # If output is 11..1, set eq to 1
+        qc.mct(
+            [qb for qb in b] + [qcout for qcout in cout],
+            eq[0],
+            anc,
+            mode='advanced')
+        qc.barrier()
+
+        # Restore b
+        if equal_str[0] == '0':
+            self.logger.debug("x(cout[0])")
+            qc.x(cout[0])
+        for i in range(1, len(equal_str)):
+            if (equal_str[i] == '0'):
+                self.logger.debug("x(b[{0}])".format(half_bits - i))
+                qc.x(b[half_bits - i])
+        qc.barrier()
+        adder.adder_circuit_i(qc, cin, a, b, cout)
+
+        for i, qr in enumerate(chain(a, b, eq)):
+            qc.measure(qr, ans[i])
+
+        ###############################################################
+        # execute the program on qasm
+        ###############################################################
+        counts = BasicTestCase.execute_qasm(qc)
+        # self.logger.debug(counts)
+        for i in counts.keys():
+            if i[0] == '1':
+                self.logger.debug("Eq active, state is {0}".format(i))
+                a_int = self._get_int_from_bitstring(i[1:half_bits + 1])
+                b_int = self._get_int_from_bitstring(i[half_bits + 1:bits + 1])
+                self.assertEqual(a_int + b_int, eq_int)
+
+        if self.draw:
+            BasicTestCase.draw_circuit(
+                qc, 'data/img/adder_w_hadamards_{0}.png'.format(name))
