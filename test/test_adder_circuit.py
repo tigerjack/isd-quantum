@@ -1,56 +1,16 @@
 import logging
 from parameterized import parameterized
 from isdquantum.utils import adder
+from isdquantum.utils import binary
+from isdquantum.utils import qregs
 from test.common import BasicTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import BasicAer, execute
-from math import ceil, log
 from itertools import chain
 from qiskit.aqua import utils
 
 
 class AdderTestCase(BasicTestCase):
-    @staticmethod
-    def _check_adder_inputs(q_a, q_b, q_cin, q_cout):
-        assert q_a.size == q_b.size, "The two adders must have the same size"
-        assert q_cin.size == 1, "The carry-in register must have size 1"
-        assert q_cout.size == 1, "The carry-out register must have size 1"
-
-    @staticmethod
-    def _check_enough_bits(a_int, bits):
-        bits_required = ceil(log(a_int + 1, 2))
-        assert bits >= bits_required, "Not enough bits."
-
-    @staticmethod
-    def _get_required_bits(*ints):
-        if len(ints) == 0:
-            raise Exception("ints greater than 0")
-        if len(ints) == 1:
-            bits = len("{0:b}".format(ints[0]))
-        else:
-            bits = len("{0:b}".format(max(ints)))
-        return bits
-
-    @staticmethod
-    def _get_bitstring_from_int(i, max_bits):
-        str = bin(i)[2:].zfill(max_bits)
-        if len(str) > max_bits:
-            raise Exception("more than max_bits")
-        return str
-
-    @staticmethod
-    def _get_int_from_bitstring(a_str):
-        return int(a_str, 2)
-
-    @staticmethod
-    def _initialize_qureg_given_int(a_int, q_reg, circuit, bits):
-        a_str = AdderTestCase._get_bitstring_from_int(a_int, bits)
-        bits = len(a_str)
-        for i in reversed(range(bits)):
-            if (a_str[i] == '1'):
-                AdderTestCase.logger.debug("x(a[{0}])".format(bits - i - 1))
-                circuit.x(q_reg[bits - i - 1])
-
     def _prepare_adder_circuit(self, bits):
         self.a = QuantumRegister(bits, "a")
         self.b = QuantumRegister(bits, "b")
@@ -85,12 +45,12 @@ class AdderTestCase(BasicTestCase):
         Add a_int and b_int and check their result.
         The number of bits used to represent the ints is computed at runtime.
         """
-        bits = self._get_required_bits(a_int, b_int)
+        bits = binary.get_required_bits(a_int, b_int)
         self._prepare_adder_circuit(bits)
-        self._check_adder_inputs(self.a, self.b, self.cin, self.cout)
+        # self._check_adder_inputs(self.a, self.b, self.cin, self.cout)
 
-        self._initialize_qureg_given_int(a_int, self.a, self.qc, bits)
-        self._initialize_qureg_given_int(b_int, self.b, self.qc, bits)
+        qregs.initialize_qureg_given_int(a_int, self.a, self.qc)
+        qregs.initialize_qureg_given_int(b_int, self.b, self.qc)
 
         # Apply the adder
         adder.adder_circuit(self.qc, self.cin, self.a, self.b, self.cout)
@@ -106,7 +66,7 @@ class AdderTestCase(BasicTestCase):
         # execute the program on qasm
         ###############################################################
         counts = BasicTestCase.execute_qasm(self.qc)
-        expected = self._get_bitstring_from_int(a_int + b_int, ans.size)
+        expected = binary.get_bitstring_from_int(a_int + b_int, ans.size)
         self._del_qubits()
         self.assertEqual(len(counts), 1)
         self.assertIn(expected, counts)
@@ -123,12 +83,12 @@ class AdderTestCase(BasicTestCase):
         Test the adder + adder_inverse. The output should be equal to the
         original state of the circuit.
         """
-        bits = self._get_required_bits(a_int, b_int)
+        bits = binary.get_required_bits(a_int, b_int)
         self._prepare_adder_circuit(bits)
-        self._check_adder_inputs(self.a, self.b, self.cin, self.cout)
+        # self._check_adder_inputs(self.a, self.b, self.cin, self.cout)
 
-        self._initialize_qureg_given_int(a_int, self.a, self.qc, bits)
-        self._initialize_qureg_given_int(b_int, self.b, self.qc, bits)
+        qregs.initialize_qureg_given_int(a_int, self.a, self.qc)
+        qregs.initialize_qureg_given_int(b_int, self.b, self.qc)
         adder.adder_circuit(self.qc, self.cin, self.a, self.b, self.cout)
         adder.adder_circuit_i(self.qc, self.cin, self.a, self.b, self.cout)
 
@@ -143,7 +103,7 @@ class AdderTestCase(BasicTestCase):
         # execute the program on qasm
         ###############################################################
         counts = BasicTestCase.execute_qasm(self.qc)
-        expected = self._get_bitstring_from_int(b_int, ans.size)
+        expected = binary.get_bitstring_from_int(b_int, ans.size)
         self._del_qubits()
         self.assertEqual(len(counts), 1)
         self.assertIn(expected, counts)
@@ -161,13 +121,13 @@ class AdderTestCase(BasicTestCase):
         if bits % 2 == 1:
             bits = bits + 1
         self.logger.debug("n bits = {0}".format(bits))
-        self._check_enough_bits(a_int, bits)
+        binary.check_enough_bits(a_int, bits)
         half_bits = int(bits / 2)
+        # WARNING: also self.b is set, be careful to not use it
         self._prepare_adder_circuit(bits)
 
         # Initialize a to its value
-        # WARNING: also self.b is set, be careful to not use it
-        self._initialize_qureg_given_int(a_int, self.a, self.qc, bits)
+        qregs.initialize_qureg_given_int(a_int, self.a, self.qc)
 
         adder.adder_circuit(
             self.qc, self.cin, [self.a[i] for i in range(half_bits)],
@@ -182,15 +142,15 @@ class AdderTestCase(BasicTestCase):
 
         counts = self.execute_qasm(self.qc)
         self.logger.debug("counts {0}".format(counts))
-        a_str = self._get_bitstring_from_int(a_int, bits)
-        a_half1_int = self._get_int_from_bitstring(a_str[0:half_bits])
-        a_half2_int = self._get_int_from_bitstring(a_str[half_bits:bits])
+        a_str = binary.get_bitstring_from_int(a_int, bits)
+        a_half1_int = binary.get_int_from_bitstring(a_str[0:half_bits])
+        a_half2_int = binary.get_int_from_bitstring(a_str[half_bits:bits])
         # a_half1_int = int(a_str[0:half_bits], 2)
         # a_half2_int = int(a_str[half_bits:bits], 2)
         self.logger.debug("a first half = {0}".format(a_half1_int))
         self.logger.debug("a second half = {0}".format(a_half2_int))
-        expected = self._get_bitstring_from_int(a_half1_int + a_half2_int,
-                                                half_bits + 1)
+        expected = binary.get_bitstring_from_int(a_half1_int + a_half2_int,
+                                                 half_bits + 1)
         self.logger.debug(" '{0}': expected".format(expected))
         self._del_qubits()
         self.assertEqual(len(counts), 1)
@@ -222,8 +182,8 @@ class AdderTestCase(BasicTestCase):
         if bits % 2 == 1:
             bits = bits + 1
         half_bits = int(bits / 2)
-        self._check_enough_bits(eq_int, half_bits + 1)
-        equal_str = self._get_bitstring_from_int(eq_int, half_bits + 1)
+        binary.check_enough_bits(eq_int, half_bits + 1)
+        equal_str = binary.get_bitstring_from_int(eq_int, half_bits + 1)
         self.logger.debug("equal_str = {0}".format(equal_str))
 
         # In reality, instead of two separete register, we should have one
@@ -232,7 +192,7 @@ class AdderTestCase(BasicTestCase):
         self._prepare_adder_circuit(half_bits)
         eq = QuantumRegister(1, 'eq')
         anc = QuantumRegister(1, 'anc')
-        self._check_adder_inputs(self.a, self.b, self.cin, self.cout)
+        # self._check_adder_inputs(self.a, self.b, self.cin, self.cout)
         # Have to measure a, b and eq
         ans = ClassicalRegister(self.a.size + self.b.size + eq.size, "ans")
         self.qc.add_register(eq, anc, ans)
@@ -287,6 +247,7 @@ class AdderTestCase(BasicTestCase):
         for i in counts.keys():
             if i[0] == '1':
                 self.logger.debug("Eq active, full state is {0}".format(i))
-                a_int = self._get_int_from_bitstring(i[1:half_bits + 1])
-                b_int = self._get_int_from_bitstring(i[half_bits + 1:bits + 1])
+                a_int = binary.get_int_from_bitstring(i[1:half_bits + 1])
+                b_int = binary.get_int_from_bitstring(
+                    i[half_bits + 1:bits + 1])
                 self.assertEqual(a_int + b_int, eq_int)
