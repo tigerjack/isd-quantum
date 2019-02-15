@@ -3,14 +3,13 @@ from parameterized import parameterized
 from isdquantum.utils import adder
 from isdquantum.utils import binary
 from isdquantum.utils import qregs
-from test.common import BasicTestCase
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit import BasicAer, execute
+from test.common_circuit import CircuitTestCase
 from itertools import chain
 from qiskit.aqua import utils
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 
-class AdderTestCase(BasicTestCase):
+class AdderTestCase(CircuitTestCase):
     def _prepare_adder_circuit(self, bits):
         self.a = QuantumRegister(bits, "a")
         self.b = QuantumRegister(bits, "b")
@@ -47,7 +46,6 @@ class AdderTestCase(BasicTestCase):
         """
         bits = binary.get_required_bits(a_int, b_int)
         self._prepare_adder_circuit(bits)
-        # self._check_adder_inputs(self.a, self.b, self.cin, self.cout)
 
         qregs.initialize_qureg_given_int(a_int, self.a, self.qc)
         qregs.initialize_qureg_given_int(b_int, self.b, self.qc)
@@ -65,7 +63,7 @@ class AdderTestCase(BasicTestCase):
         ###############################################################
         # execute the program on qasm
         ###############################################################
-        counts = BasicTestCase.execute_qasm(self.qc)
+        counts = CircuitTestCase.execute_qasm(self.qc)
         expected = binary.get_bitstring_from_int(a_int + b_int, ans.size)
         self._del_qubits()
         self.assertEqual(len(counts), 1)
@@ -85,7 +83,6 @@ class AdderTestCase(BasicTestCase):
         """
         bits = binary.get_required_bits(a_int, b_int)
         self._prepare_adder_circuit(bits)
-        # self._check_adder_inputs(self.a, self.b, self.cin, self.cout)
 
         qregs.initialize_qureg_given_int(a_int, self.a, self.qc)
         qregs.initialize_qureg_given_int(b_int, self.b, self.qc)
@@ -102,7 +99,7 @@ class AdderTestCase(BasicTestCase):
         ###############################################################
         # execute the program on qasm
         ###############################################################
-        counts = BasicTestCase.execute_qasm(self.qc)
+        counts = CircuitTestCase.execute_qasm(self.qc)
         expected = binary.get_bitstring_from_int(b_int, ans.size)
         self._del_qubits()
         self.assertEqual(len(counts), 1)
@@ -192,7 +189,7 @@ class AdderTestCase(BasicTestCase):
         self._prepare_adder_circuit(half_bits)
         eq = QuantumRegister(1, 'eq')
         anc = QuantumRegister(1, 'anc')
-        # self._check_adder_inputs(self.a, self.b, self.cin, self.cout)
+
         # Have to measure a, b and eq
         ans = ClassicalRegister(self.a.size + self.b.size + eq.size, "ans")
         self.qc.add_register(eq, anc, ans)
@@ -238,7 +235,7 @@ class AdderTestCase(BasicTestCase):
         ###############################################################
         # execute the program on qasm
         ###############################################################
-        counts = BasicTestCase.execute_qasm(self.qc)
+        counts = CircuitTestCase.execute_qasm(self.qc)
         self._del_qubits()
         # self.logger.debug(counts)
         # The idea is that the eq qubit is the first bit of the result state.

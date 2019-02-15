@@ -1,41 +1,19 @@
-import unittest
 import logging
 from math import factorial
 from parameterized import parameterized
-import mock
-import numpy as np
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import BasicAer, execute
+from test.common_circuit import CircuitTestCase
 from isdquantum.utils import permutation_recursion
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 
-def draw_circuit(circuit, n, w):
-    pass
-    from qiskit.tools.visualization import circuit_drawer
-    circuit_drawer(
-        circuit, filename='test_rec_{0}_{1}'.format(n, w), output='mpl')
-
-
-class PermRecTestCase(unittest.TestCase):
+class PermRecTestCase(CircuitTestCase):
     @classmethod
     def setUpClass(cls):
-        cls.logger = logging.getLogger(cls.__name__)
-        from os import getenv
-        if not getenv('LOG_LEVEL'):
-            return
-        logging_level = logging._nameToLevel.get(getenv('LOG_LEVEL'), 'INFO')
-
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(levelname)-8s %(funcName)-12s %(message)s')
-        handler.setFormatter(formatter)
-        cls.logger.addHandler(handler)
-        cls.logger.setLevel(logging_level)
-
+        CircuitTestCase.setUpClass()
         perm_logger = logging.getLogger(
             'isdquantum.utils.permutation_recursion')
-        perm_logger.addHandler(handler)
-        perm_logger.setLevel(logging_level)
+        perm_logger.setLevel(cls.logger.level)
+        perm_logger.handlers = cls.logger.handlers
 
     def setUp(self):
         self.circuit = QuantumCircuit()
@@ -64,52 +42,35 @@ class PermRecTestCase(unittest.TestCase):
         # ('n16w1', 16, 1, False),
         # ('n16w1r', 16, 1, True),
     ])
-    # @unittest.skip("No reason")
     def test_patterns(self, name, n, w, reverse):
-        try:
-            permutation_dict = permutation_recursion._ncr_permutation_pattern(
-                n, w)
-            self.logger.debug("n_flips = {0}".format(
-                permutation_dict['n_flips']))
-            self.logger.debug("n_lines = {0}".format(
-                permutation_dict['n_lines']))
-            selectors_q = QuantumRegister(permutation_dict['n_lines'], 'sel')
-            flip_q = QuantumRegister(permutation_dict['n_flips'], 'flips')
-            self.circuit.add_register(selectors_q)
-            self.circuit.add_register(flip_q)
-            self.logger.debug(flip_q.size)
+        permutation_dict = permutation_recursion._ncr_permutation_pattern(n, w)
+        self.logger.debug("n_flips = {0}".format(permutation_dict['n_flips']))
+        self.logger.debug("n_lines = {0}".format(permutation_dict['n_lines']))
+        selectors_q = QuantumRegister(permutation_dict['n_lines'], 'sel')
+        flip_q = QuantumRegister(permutation_dict['n_flips'], 'flips')
+        self.circuit.add_register(selectors_q)
+        self.circuit.add_register(flip_q)
+        self.logger.debug(flip_q.size)
 
-            self.circuit.h(flip_q)
-            # if (w > selectors_q.size / 2):
-            #     to_negate_range = selectors_q.size - w
-            # else:
-            #     to_negate_range = w
-            for i in range(permutation_dict['to_negate_range']):
-                self.circuit.x(selectors_q[i])
-
-            for i in permutation_dict['swaps_pattern']:
+        self.circuit.h(flip_q)
+        for i in range(permutation_dict['to_negate_range']):
+            self.circuit.x(selectors_q[i])
+        for i in permutation_dict['swaps_pattern']:
+            self.circuit.cswap(flip_q[i[0]], selectors_q[i[1]],
+                               selectors_q[i[2]])
+        if reverse:
+            for i in permutation_dict['swaps_pattern'][::-1]:
                 self.circuit.cswap(flip_q[i[0]], selectors_q[i[1]],
                                    selectors_q[i[2]])
-            if reverse:
-                for i in permutation_dict['swaps_pattern'][::-1]:
-                    self.circuit.cswap(flip_q[i[0]], selectors_q[i[1]],
-                                       selectors_q[i[2]])
-            if (permutation_dict['negated_permutation']):
-                self.circuit.x(selectors_q)
+        if (permutation_dict['negated_permutation']):
+            self.circuit.x(selectors_q)
 
-            # QASM SIMULATOR
-            cr = ClassicalRegister(n)
-            self.circuit.add_register(cr)
-            self.circuit.measure(selectors_q, cr)
+        # QASM SIMULATOR
+        cr = ClassicalRegister(n)
+        self.circuit.add_register(cr)
+        self.circuit.measure(selectors_q, cr)
 
-            counts = execute(
-                self.circuit,
-                BasicAer.get_backend('qasm_simulator'),
-                shots=1024).result().get_counts()
-            counts_exp = 1 if reverse else factorial(n) / factorial(
-                w) / factorial(n - w)
-            self.assertEqual(len(counts), counts_exp)
-        except:
-            self.logger.error("Drawing circuit")
-            draw_circuit(self.circuit, n, w)
-            raise
+        counts = CircuitTestCase.execute_qasm(self.circuit)
+        counts_exp = 1 if reverse else factorial(n) / factorial(w) / factorial(
+            n - w)
+        self.assertEqual(len(counts), counts_exp)

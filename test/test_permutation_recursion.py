@@ -1,32 +1,19 @@
-import unittest
-from os import getenv
 import logging
 from parameterized import parameterized
-import mock
-from isdquantum.utils import permutation_recursion
 from math import log, ceil
+from test.common import BasicTestCase
+from isdquantum.utils import permutation_recursion
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 
 
-class PermutationTest(unittest.TestCase):
+class PermutationTest(BasicTestCase):
     @classmethod
     def setUpClass(cls):
-        cls.logger = logging.getLogger(cls.__name__)
-        if not getenv('LOG_LEVEL'):
-            return
-        logging_level = logging._nameToLevel.get(getenv('LOG_LEVEL'), 'INFO')
-
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(levelname)-8s %(funcName)-12s %(message)s')
-        handler.setFormatter(formatter)
-        cls.logger.addHandler(handler)
-        cls.logger.setLevel(logging_level)
-
+        BasicTestCase.setUpClass()
         perm_logger = logging.getLogger(
             'isdquantum.utils.permutation_recursion')
-        perm_logger.addHandler(handler)
-        perm_logger.setLevel(logging_level)
+        perm_logger.setLevel(cls.logger.level)
+        perm_logger.handlers = cls.logger.handlers
 
     # Support method to compare
     def _init_swaps_per_step_pattern(self, n, w):
