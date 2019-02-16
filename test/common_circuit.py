@@ -5,7 +5,10 @@ class CircuitTestCase(BasicTestCase):
     @staticmethod
     def draw_circuit(circuit, filename):
         from qiskit.tools.visualization import circuit_drawer
-        circuit_drawer(circuit, filename=filename, output='mpl')
+        circuit_drawer(
+            circuit,
+            filename="data/img/test/" + filename + '.png',
+            output='mpl')
 
     @staticmethod
     def execute_qasm(qc):
