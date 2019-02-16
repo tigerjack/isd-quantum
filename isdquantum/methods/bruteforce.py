@@ -1,4 +1,6 @@
 import logging
+from isdquantum.utils import qregs
+from isdquantum.utils import permutation_recursion
 
 _logger = logging.getLogger(__name__)
 
@@ -11,13 +13,13 @@ class BruteforceISD():
         self.n = h.shape[1]
         self.r = h.shape[0]
         self.mct_mode = mct_mode
-        # mode = 'basic'
         self.need_measures = need_measures
         _logger.info(
             "n: {0}, r: {1}, w: {2}, syndrome: {3}, measures: {4}, mct_mode: {5}"
             .format(self.n, self.r, self.w, self.syndrome, self.need_measures,
                     self.mct_mode))
-        # Don't know why but it stops working if put in the import section
+        if mct_mode not in ('noancilla', 'basic', 'advanced'):
+            raise Exception("Invalid mct_mode selected")
 
     def _initialize_circuit(self):
         """
@@ -31,116 +33,83 @@ class BruteforceISD():
         from qiskit.aqua import utils
         from qiskit import QuantumCircuit
         from qiskit import QuantumRegister, QuantumCircuit
-        self.circuit = QuantumCircuit()
-        _logger.debug("creating n = {0} qubits for selection".format(self.n))
+        self.circuit = QuantumCircuit(name="isd_{0}_{1}_{2}_{3}".format(
+            self.n, self.r, self.w, self.mct_mode))
+        # To compute ncr_flip_q size and the permutation pattern
+        self.ncr_benes_dict = permutation_recursion.get_all_n_bits_weight_r(
+            self.n, self.w, mode='permutation')
+
+        # We don't use only n qubits, but the nearest power of 2
+        self.selectors_q = QuantumRegister(self.ncr_benes_dict['n_lines'],
+                                           'select')
+        self.ncr_flip_q = QuantumRegister(self.ncr_benes_dict['n_flips'],
+                                          "flip")
+        self.circuit.add_register(self.selectors_q)
+        self.circuit.add_register(self.ncr_flip_q)
 
         self.sum_q = QuantumRegister(self.r, 'sum')
-
-        if self.mct_mode == 'advanced':
-            self.ancillas_q = QuantumRegister(1, 'ancillas')
-            self.circuit.add_register(self.ancillas_q)
-        elif self.mct_mode == 'basic':
-            self.ancillas_q = QuantumRegister(self.flip_q.size - 2, 'ancillas')
-            self.circuit.add_register(self.ancillas_q)
-        elif self.mct_mode == 'noancilla':
-            # no ancilla to add
-            self.ancillas_q = None
-            pass
-        else:
-            raise Exception("Invalid mct mode selected")
-        # To compute flip_q size and the permutation pattern
-        self._permutation_pattern()
-        self.selectors_q = QuantumRegister(self.permutation['n_lines'],
-                                           'select')
-        self.flip_q = QuantumRegister(self.permutation['n_flips'], "flip")
-
-        self.circuit.add_register(self.selectors_q)
-        self.circuit.add_register(self.flip_q)
         self.circuit.add_register(self.sum_q)
 
-    def _permutation_pattern(self):
-        """
-        Compute the permuation pattern.
-        Basically, the idea is that we want all the possible combinations of n bits with weight w, i.e.
-        n choose w.
+        if self.mct_mode == 'advanced':
+            self.mct_anc = QuantumRegister(1, 'mctAnc')
+            self.circuit.add_register(self.mct_anc)
+        elif self.mct_mode == 'basic':
+            self.mct_anc = QuantumRegister(self.ncr_flip_q.size - 2, 'mctAnc')
+            self.circuit.add_register(self.mct_anc)
+        elif self.mct_mode == 'noancilla':
+            # no ancilla to add
+            self.mct_anc = None
+            pass
 
-        """
-        from isdquantum.utils import permutation_recursion
-        permutation_dict = permutation_recursion.get_all_n_bits_weight_r(
-            self.n, self.w, 'permutation')
-        self.permutation = permutation_dict
-
-    def _permutation_pattern_support(self, start, end, swap_step, flip_q_idx):
-        _logger.debug("Start: {0}, end: {1}, swap_step: {2}".format(
-            start, end, swap_step))
-        if (swap_step == 0 or start >= end):
-            _logger.debug("Base case recursion")
-            return flip_q_idx
-
-        for_iter = 0
-        for i in range(start, end):
-            for_iter += 1
-            _logger.debug("cswap({2}, {0}, {1})".format(
-                i, i + swap_step, flip_q_idx))
-            self.permutation['swaps_pattern'].append((flip_q_idx, i,
-                                                      i + swap_step))
-            flip_q_idx += 1
-
-        for_iter_next = min(for_iter, int(swap_step / 2))
-        _logger.debug(
-            "Before recursion 1, start: {0}, end: {1}, swap_step: {2}, for_iter_next"
-            .format(start, end, swap_step, for_iter_next))
-        flip_q_idx = self._permutation_pattern_support(
-            start, start + for_iter_next, int(swap_step / 2), flip_q_idx)
-
-        _logger.debug(
-            "Before recursion, start: {0}, end: {1}, swap_step: {2}, for_iter_next {3}"
-            .format(start, end, swap_step, for_iter_next))
-        flip_q_idx = self._permutation_pattern_support(
-            start + swap_step, start + swap_step + for_iter_next,
-            int(swap_step / 2), flip_q_idx)
-        return flip_q_idx
-
-    def _permutation(self):
+    def _ncr(self):
         self.circuit.barrier()
-        self.circuit.h(self.flip_q)
-        for i in range(self.permutation['to_negate_range']):
+        self._ncr_benes()
+        self.circuit.barrier()
+
+    def _ncr_i(self):
+        self.circuit.barrier()
+        self._ncr_benes_i()
+        self.circuit.barrier()
+
+    def _ncr_benes(self):
+        self.circuit.h(self.ncr_flip_q)
+        for i in range(self.ncr_benes_dict['to_negate_range']):
             self.circuit.x(self.selectors_q[i])
 
-        for i in self.permutation['swaps_pattern']:
-            self.circuit.cswap(self.flip_q[i[0]], self.selectors_q[i[1]],
+        for i in self.ncr_benes_dict['swaps_pattern']:
+            self.circuit.cswap(self.ncr_flip_q[i[0]], self.selectors_q[i[1]],
                                self.selectors_q[i[2]])
-        if self.permutation['negated_permutation']:
+        if self.ncr_benes_dict['negated_permutation']:
             self.circuit.x(self.selectors_q)
-        self.circuit.barrier()
 
-    def _permutation_i(self):
-        self.circuit.barrier()
-        if self.permutation['negated_permutation']:
+    def _ncr_benes_i(self):
+        if self.ncr_benes_dict['negated_permutation']:
             self.circuit.x(self.selectors_q)
-        for i in self.permutation['swaps_pattern'][::-1]:
-            self.circuit.cswap(self.flip_q[i[0]], self.selectors_q[i[1]],
+        for i in self.ncr_benes_dict['swaps_pattern'][::-1]:
+            self.circuit.cswap(self.ncr_flip_q[i[0]], self.selectors_q[i[1]],
                                self.selectors_q[i[2]])
-        for i in range(self.permutation['to_negate_range']):
+        for i in range(self.ncr_benes_dict['to_negate_range']):
             self.circuit.x(self.selectors_q[i])
-        self.circuit.h(self.flip_q)
-        self.circuit.barrier()
+        self.circuit.h(self.ncr_flip_q)
 
     def _matrix2gates(self):
+        self.circuit.barrier()
         for i in range(self.n):
-            for j in range(self.r):
-                if self.h[j][i] == 1:
-                    self.circuit.cx(self.selectors_q[i], self.sum_q[j])
-            self.circuit.barrier()
+            qregs.conditionally_initialize_qureg_given_bitstring(
+                self.h[:, i][::-1].tolist(), self.sum_q, [self.selectors_q[i]],
+                None, self.circuit, 'advanced')
+        self.circuit.barrier()
 
     def _matrix2gates_i(self):
-        for i in range(self.n - 1, -1, -1):
-            for j in range(self.r - 1, -1, -1):
-                if self.h[j][i] == 1:
-                    self.circuit.cx(self.selectors_q[i], self.sum_q[j])
-            self.circuit.barrier()
+        self.circuit.barrier()
+        for i in reversed(range(self.n)):
+            qregs.conditionally_initialize_qureg_given_bitstring(
+                self.h[:, i][::-1].tolist(), self.sum_q, [self.selectors_q[i]],
+                None, self.circuit, 'advanced')
+        self.circuit.barrier()
 
     def _syndrome2gates(self):
+        self.circuit.barrier()
         for i in range(len(self.syndrome)):
             if (self.syndrome[i] == 0):
                 self.circuit.x(self.sum_q[i])
@@ -149,58 +118,43 @@ class BruteforceISD():
     def _syndrome2gates_i(self):
         return self._syndrome2gates(qc, sum_q, s)
 
-    def _oracle(self, controls_q, to_invert_q):
-        # if (ancillas_q is None or ancillas_q.size == 0):
-        #     m = 'noancilla'
-        #     _logger.debug("oracle -> no ancilla mode for mct")
-        # elif (ancillas_q.size == len(sum_q.size) - 2):
-        #     m = 'basic'
-        #     _logger.debug("oracle -> basic mode for mct")
-        # elif (ancillas_q.size == 1):
-        #     m = 'advanced'
-        #     _logger.debug("oracle -> advanced mode for mct")
-        # else:
-        #     raise "oracle -> wrong number of ancillas for whatever mode {0}".format(
-        #         len(ancillas_q))
-
+    def _oracle(self):
+        self.circuit.barrier()
+        controls_q = self.sum_q[1:]
+        to_invert_q = self.sum_q[0]
         # A CZ obtained by H CX H
         self.circuit.h(to_invert_q)
         self.circuit.mct(
-            controls_q, to_invert_q, self.ancillas_q, mode=self.mct_mode)
+            controls_q, to_invert_q, self.mct_anc, mode=self.mct_mode)
         self.circuit.h(to_invert_q)
-
-    def _negate_for_inversion(self, *registers):
-        for register in registers:
-            self.circuit.x(register)
-
-    # single control sum is not a QuantumRegister, but a qubit
-    def _inversion_about_zero(self, control_q, multi_control_target_qubit):
         self.circuit.barrier()
-        # if (ancillas_q is None or ancillas_q.size == 0):
-        #     m = 'noancilla'
-        #     _logger.debug("inversion_about_zero -> no ancilla mode for mct")
-        # elif (ancillas_q.size == len(control_q) - 2):
-        #     m = 'basic'
-        #     _logger.debug("inversion_about_zero -> basic mode for mct")
-        # elif (ancillas_q.size == 1):
-        #     m = 'advanced'
-        #     _logger.debug("inversion_about_zero -> advanced mode for mct")
-        # else:
-        #     raise "inversion_about_zero -> wrong number of ancillas for whatever mode {0}".format(
-        #         len(ancillas_q))
 
+    def _negate_for_inversion(self):
+        self.circuit.barrier()
+        to_negate_registers = self.ncr_flip_q
+        for register in to_negate_registers:
+            self.circuit.x(register)
+        self.circuit.barrier()
+
+    def _inversion_about_zero(self):
+        self.circuit.barrier()
+        #TODO
+        control_q = self.ncr_flip_q[1:]
+        multi_control_target_qubit = self.ncr_flip_q[0]
+
+        # CZ = H CX H
         self.circuit.h(multi_control_target_qubit)
         self.circuit.mct(
             control_q,
             multi_control_target_qubit,
-            self.ancillas_q,
+            self.mct_anc,
             mode=self.mct_mode)
         self.circuit.h(multi_control_target_qubit)
         self.circuit.barrier()
 
     def build_circuit(self):
         self._initialize_circuit()
-        self._permutation()
+        self._ncr()
 
         # Number of grover iterations
         from math import sqrt, pi
@@ -211,16 +165,16 @@ class BruteforceISD():
             self._matrix2gates()
             self._syndrome2gates()
 
-            self._oracle(self.sum_q[1:], self.sum_q[0])
+            self._oracle()
             self._syndrome2gates()
             self._matrix2gates_i()
-            self._permutation_i()
+            self._ncr_i()
 
-            self._negate_for_inversion(self.flip_q)
-            self._inversion_about_zero(self.flip_q[1:], self.flip_q[0])
-            self._negate_for_inversion(self.flip_q)
+            self._negate_for_inversion()
+            self._inversion_about_zero()
+            self._negate_for_inversion()
 
-            self._permutation()
+            self._ncr()
 
         if self.need_measures:
             from qiskit import ClassicalRegister
