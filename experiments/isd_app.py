@@ -1,6 +1,7 @@
 def usage():
     import argparse
-    parser = argparse.ArgumentParser(description="Bruteforce isd algorithm")
+    parser = argparse.ArgumentParser(
+        description="Collection of isd algorithms for quantum computers")
     parser.add_argument(
         'n', metavar='n', type=int, help='The n of the parity matrix H.')
     parser.add_argument(
@@ -14,6 +15,11 @@ def usage():
         'w', metavar='w', type=int, help='The weight of the error.')
     parser.add_argument(
         '-m',
+        help='The isd choice',
+        required=True,
+        choices=['bruteforce', 'lee_brickell'],
+    )
+    parser.add_argument(
         '--mct_mode',
         choices=['basic', 'advanced', 'noancilla'],
         default='advanced',
@@ -135,9 +141,9 @@ def load_modules():
     # sys.path.insert(
     #     0, os.path.abspath(
     #         os.path.join(os.path.dirname(__file__), '..', 'src')))
-    global BruteforceISD
-    # from prange_isd import PrangeISD
+    global BruteforceISD, LeeBrickellISD
     from isdquantum.methods.bruteforce import BruteforceISD
+    from isdquantum.methods.lee_brickell import LeeBrickellISD
     #prange_isd_logger = logging.getLogger('prange_isd')
     prange_isd_logger = logging.getLogger('isd.quantum.methods.bruteforce')
     prange_isd_logger.setLevel(logging_level)
@@ -217,9 +223,8 @@ def run(qc, backend):
 
 
 def draw_circuit(qc, args):
-    _logger.debug("Drawing circuit")
-    img_file = args.img_dir + "prange_isd_{0}_{1}_{2}".format(
-        args.n, args.r, args.w)
+    _logger.info("Drawing circuit")
+    img_file = args.img_dir + qc.name
     style_mpl = {
         'cregbundle': True,
         'compress': True,
@@ -250,18 +255,19 @@ def draw_circuit(qc, args):
         }
     }
     from qiskit.tools.visualization import circuit_drawer
-    circuit_drawer(qc, filename=img_file, style=style_mpl, output='mpl')
+    circuit_drawer(
+        qc, filename=img_file + ".png", style=style_mpl, output='mpl')
+    # print("Drawn")
     # circuit_drawer(qc, filename=img_file, output='latex')
     # circuit_drawer(qc, filename=img_file, output='latex_source')
     # circuit_drawer(qc, filename=img_file, line_length=-1, output='text')
 
 
 def draw_dag(qc, args):
-    _logger.debug("Drawing DAG")
+    _logger.info("Drawing DAG")
+    img_file = args.img_dir + qc.name
     from qiskit.converters import circuit_to_dag
     dag = circuit_to_dag(qc)
-    img_file = args.img_dir + "prange_isd_{0}_{1}_{2}_dag".format(
-        args.n, args.r, args.w)
     from qiskit.tools.visualization.dag_visualization import dag_drawer
     dag_drawer(dag, img_file)
 
@@ -285,6 +291,13 @@ def get_compiled_circuit_infos(qc, backend):
     return result
 
 
+def drawing_at_end(qc, args):
+    if args.draw_circuit:
+        draw_circuit(qc, args)
+    if args.draw_dag:
+        draw_dag(qc, args)
+
+
 def main():
     args = usage()
     clean_args(args)
@@ -304,8 +317,13 @@ def main():
     else:
         _logger.debug("Measures needed")
         need_measures = True
-    pisd = BruteforceISD(h, syndrome, w, need_measures, args.mct_mode)
-    qc = pisd.build_circuit()
+    if args.m == 'bruteforce':
+        isd_method = BruteforceISD(h, syndrome, w, need_measures,
+                                   args.mct_mode)
+    elif args.m == 'lee_brickell':
+        isd_method = LeeBrickellISD(h, syndrome, w, need_measures,
+                                    args.mct_mode)
+    qc = isd_method.build_circuit()
 
     s = args.export_qasm_file
     if s is not None:
@@ -324,13 +342,9 @@ def main():
         for k, v in res.items():
             print("{0} --> {1}".format(k, v))
 
-    if args.draw_circuit:
-        draw_circuit(qc, args)
-    if args.draw_dag:
-        draw_dag(qc, args)
-
     if (args.not_execute):
         _logger.debug("Not execute set to true, exiting.")
+        drawing_at_end(qc, args)
         return
 
     result = run(qc, backend)
@@ -357,6 +371,7 @@ def main():
             plot_histogram(counts)
     _logger.info("H was\n{0}".format(h))
     _logger.info("Syndrome was\n{0}".format(syndrome))
+    drawing_at_end(qc, args)
 
 
 if __name__ == "__main__":
