@@ -13,13 +13,79 @@ logger = logging.getLogger(__name__)
 def get_all_n_bits_weight_r(n, r, mode):
     if (mode == 'benes'):
         return _benes_permutation_pattern(n, r)
-    elif (mode == 'fpc'):
-        return _fpc_pattern(n, r)
     else:
         raise Exception("Mode not implemented yet")
 
 
-def _fpc_pattern(n, r):
+def get_bits_weight_pattern(nbits):
+    return _fpc_pattern(nbits)
+
+
+# Return the list of qubits containing the result
+def get_qubits_weight_circuit(circuit, a_qs, cin_q, cout_qs, nwr_dict):
+    # nwr_dict = _fpc_pattern()
+    # from qiskit import QuantumCircuit
+    assert len(a_qs) == nwr_dict['n_lines']
+    assert len(cin_q) == 1
+    assert len(cout_qs) == nwr_dict['n_couts']
+    for i in nwr_dict['adders_pattern']:
+        cout_idx = int(i[-1][1])
+        half_bits = int((len(i) - 1) / 2)
+        input_qubits = []
+        for j in i:
+            if j[0] == 'a':
+                input_qubits.append(a_qs[int(j[1])])
+            elif j[0] == 'c':
+                input_qubits.append(cout_qs[int(j[1])])
+            else:
+                raise Exception("Invalid")
+        logger.debug("{0}".format([input_qubits[i] for i in range(half_bits)]))
+        logger.debug("{0}".format(
+            [input_qubits[i] for i in range(half_bits, 2 * half_bits)]))
+        logger.debug("{0}".format([cout_qs[cout_idx]]))
+        adder.adder_circuit(
+            circuit, cin_q, [input_qubits[i] for i in range(half_bits)],
+            [input_qubits[i]
+             for i in range(half_bits, 2 * half_bits)], [cout_qs[cout_idx]])
+    to_measure_qubits = []
+    for j in nwr_dict['results']:
+        if j[0] == 'a':
+            to_measure_qubits.append(a_qs[int(j[1])])
+        elif j[0] == 'c':
+            to_measure_qubits.append(cout_qs[int(j[1])])
+        else:
+            raise Exception("Invalid")
+    return to_measure_qubits
+
+
+def get_qubits_weight_circuit_i(circuit, a_qs, cin_q, cout_qs, nwr_dict):
+    # nwr_dict = _fpc_pattern()
+    # from qiskit import QuantumCircuit
+    assert len(a_qs) == nwr_dict['n_lines']
+    assert len(cin_q) == 1
+    assert len(cout_qs) == nwr_dict['n_couts']
+    for i in nwr_dict['adders_pattern'][::-1]:
+        cout_idx = int(i[-1][1])
+        half_bits = int((len(i) - 1) / 2)
+        input_qubits = []
+        for j in i:
+            if j[0] == 'a':
+                input_qubits.append(a_qs[int(j[1])])
+            elif j[0] == 'c':
+                input_qubits.append(cout_qs[int(j[1])])
+            else:
+                raise Exception("Invalid")
+        logger.debug("{0}".format([input_qubits[i] for i in range(half_bits)]))
+        logger.debug("{0}".format(
+            [input_qubits[i] for i in range(half_bits, 2 * half_bits)]))
+        logger.debug("{0}".format([cout_qs[cout_idx]]))
+        adder.adder_circuit_i(
+            circuit, cin_q, [input_qubits[i] for i in range(half_bits)],
+            [input_qubits[i]
+             for i in range(half_bits, 2 * half_bits)], [cout_qs[cout_idx]])
+
+
+def _fpc_pattern(n):
     nwr_dict = {'mode': 'fpc'}
     steps = ceil(log(n, 2))
     # TODO maybe we can use fewer lines
