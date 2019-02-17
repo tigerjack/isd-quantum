@@ -44,7 +44,8 @@ def initialize_qureg_given_bitstring(a_str, qreg, circuit):
     the function negate bits 0, 1 and 3 of the qreg.
     # 3->0; 2->1; 1->2; 0;3
     Note that the qreg has the most significant bit in the rightmost part (little endian)
-    of the qreg, i.e. the most significant bit is on qreg 0
+    of the qreg, i.e. the most significant bit is on qreg 0.
+    In the circuit, it means that the most significant bits are the lower ones of the qreg
 
     :param a_str: the binary digits bit string
     :param qreg: the QuantumRegister on which the integer should be set

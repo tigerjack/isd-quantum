@@ -201,15 +201,10 @@ class AdderTestCase(CircuitTestCase):
         adder.adder_circuit(self.qc, self.cin, self.a, self.b, self.cout)
 
         # Add the negated equal_str to {cout, b}. Note that the result of
-        # a + b is stored in [cout, b_n, b_{n_1}, ..., b_0], w/ the most
+        # a + b is stored in [cout_0, b_n, b_{n_1}, ..., b_0], w/ the most
         # significant bit on cout.
-        if equal_str[0] == '0':
-            self.logger.debug("x(cout[0])")
-            self.qc.x(self.cout[0])
-        for i in range(1, len(equal_str)):
-            if (equal_str[i] == '0'):
-                self.logger.debug("x(b[{0}])".format(half_bits - i))
-                self.qc.x(self.b[half_bits - i])
+        qregs.initialize_qureg_to_complement_of_bitstring(
+            equal_str, [qb for qb in self.b] + [self.cout[0]], self.qc)
 
         # If output is 11..1, i.e. a + b == eq_int, set eq to 1
         self.qc.mct(
@@ -219,13 +214,8 @@ class AdderTestCase(CircuitTestCase):
             mode='advanced')
 
         # Restore b
-        if equal_str[0] == '0':
-            self.logger.debug("x(cout[0])")
-            self.qc.x(self.cout[0])
-        for i in range(1, len(equal_str)):
-            if (equal_str[i] == '0'):
-                self.logger.debug("x(b[{0}])".format(half_bits - i))
-                self.qc.x(self.b[half_bits - i])
+        qregs.initialize_qureg_to_complement_of_bitstring(
+            equal_str, [qb for qb in self.b] + [self.cout[0]], self.qc)
         adder.adder_circuit_i(self.qc, self.cin, self.a, self.b, self.cout)
 
         # Measure a, b, eq
