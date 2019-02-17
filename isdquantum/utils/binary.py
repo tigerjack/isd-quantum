@@ -24,19 +24,19 @@ def get_required_bits(*ints):
 
 # WARN: Returns 2's complement. If you want the negation of the bitstring
 # representing i, you can use this method followed by the get_negated_bitstring
-def get_bitstring_from_int(i, max_bits):
+def get_bitstring_from_int(i, max_bits, littleEndian=False):
     if i >= 0:
         str = bin(i)[2:].zfill(max_bits)
     else:
         str = bin(2**max_bits + i)[2:].zfill(max_bits)
     if len(str) > max_bits:
         raise Exception("more than max_bits")
-    return str
+    return str if not littleEndian else str[::-1]
 
 
 def get_negated_bistring(a_str):
     return a_str.translate(str.maketrans('01', '10'))
 
 
-def get_int_from_bitstring(a_str):
-    return int(a_str, 2)
+def get_int_from_bitstring(a_str, littleEndian=False):
+    return int(a_str if not littleEndian else a_str[::-1], 2)
