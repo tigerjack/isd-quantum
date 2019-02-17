@@ -164,3 +164,52 @@ class PopulationCountTestCase(CircuitTestCase):
         exp_actives = factorial(n_bits) / factorial(weight_int) / factorial(
             n_bits - weight_int)
         self.assertEqual(total_actives, exp_actives)
+
+    @parameterized.expand([
+        (("2on4"), 2, 4),
+        (("3on4"), 3, 4),
+        (("3on8"), 1, 8),
+        (("3on8"), 2, 8),
+        (("3on8"), 3, 8),
+        (("3on8"), 4, 8),
+    ])
+    def test_fast_population_count_w_hadamards_and_reset(
+            self, name, weight_int, n_bits):
+        nwr_dict = hwc.get_circuit_for_qubits_weight_get_pattern(n_bits)
+        result_bit_length = len(nwr_dict['results'])
+        a = QuantumRegister(nwr_dict['n_lines'], 'a')
+        cin = QuantumRegister(1, 'cin')
+        cout = QuantumRegister(nwr_dict['n_couts'], 'cout')
+        qc = QuantumCircuit(cin, a, cout, name='test_fpt_{0}'.format(name))
+
+        eq = QuantumRegister(1, 'eq')
+        anc = QuantumRegister(1, 'anc')
+
+        # Have to measure a and eq
+        cr = ClassicalRegister(a.size + eq.size, "ans")
+        qc.add_register(eq, anc, cr)
+
+        qc.h(a)
+        result_qubits = hwc.get_circuit_for_qubits_weight_check(
+            qc, a, cin, cout, eq, anc, weight_int, nwr_dict)
+        hwc.get_circuit_for_qubits_weight_check_i(
+            qc,
+            a,
+            cin,
+            cout,
+            eq,
+            anc,
+            weight_int,
+            nwr_dict,
+            result_qubits,
+            uncomputeEq=True)
+        qc.h(a)
+
+        qc.measure([aq for aq in a] + [eq[0]], cr)
+
+        # QASM
+        counts = CircuitTestCase.execute_qasm(qc, 2048)
+        self.logger.debug(counts)
+        exp_state = '0' * len(cr)
+        self.assertEqual(len(counts), 1)
+        self.assertIn(exp_state, counts)
