@@ -1,16 +1,71 @@
 from math import ceil, log
 import logging
+from isdquantum.utils import binary
+from isdquantum.utils import adder
 
 logger = logging.getLogger(__name__)
 
 
 # It allows to compute all combinations of length n and weight r,
 # i.e. all combinations of length n w/ r bits set to 1.
+# benes
+# fpt stands for fast population count
 def get_all_n_bits_weight_r(n, r, mode):
     if (mode == 'benes'):
         return _benes_permutation_pattern(n, r)
+    elif (mode == 'fpc'):
+        return _fpc_pattern(n, r)
     else:
         raise Exception("Mode not implemented yet")
+
+
+def _fpc_pattern(n, r):
+    nwr_dict = {'mode': 'fpc'}
+    steps = ceil(log(n, 2))
+    # TODO maybe we can use fewer lines
+    # n_lines = n if n % 2 == 0 else n + 1
+    n_lines = 2**steps
+    nwr_dict['n_lines'] = n_lines
+    nwr_dict['n_couts'] = n_lines - 1
+    # couts = list(reversed(range(nwr_dict['n_couts'])))
+    couts = ["c{0}".format(i) for i in range(nwr_dict['n_couts'])][::-1]
+    # inputs = [chr(c) for c in range(ord('a'), ord('h') + 1)][::-1]
+    inputs = ["a{0}".format(i) for i in range(nwr_dict['n_lines'])][::-1]
+    # inputs = list(range(nwr_dict['n_lines']))
+    logger.debug("inputs {0}".format(inputs))
+    logger.debug("couts {0}".format(couts))
+    nwr_dict['adders_pattern'] = []
+
+    n_adders = n_lines
+    n_inputs_per_adders = 0
+    inputs_next_stage = inputs
+    for i in range(steps):
+        n_adders = int(n_adders / 2)
+        n_inputs_per_adders += 2
+        outputs_this_stage = []
+        logger.debug("Stage {0}, n_adder {1}, n_inputs_per_adder {2}".format(
+            i, n_adders, n_inputs_per_adders))
+        logger.debug("inputs_next_stage {0}".format(inputs_next_stage))
+        for j in range(n_adders):
+            logger.debug("Stage {0}, adder {1}".format(i, j))
+            adder_inputs = []
+            for k in range(n_inputs_per_adders):
+                adder_inputs.append(inputs_next_stage.pop())
+            adder_cout = couts.pop()
+            adder_outputs = adder_inputs[int(len(adder_inputs) /
+                                             2):len(adder_inputs)] + [
+                                                 adder_cout
+                                             ]
+            nwr_dict['adders_pattern'].append(
+                tuple(adder_inputs) + tuple([adder_cout]))
+            logger.debug("{0}, {1} --> {2}".format(adder_inputs, adder_cout,
+                                                   adder_outputs))
+            outputs_this_stage += adder_outputs
+        inputs_next_stage = outputs_this_stage[::-1]
+    logger.debug("adders pattern\n{0}".format(nwr_dict['adders_pattern']))
+    nwr_dict['results'] = inputs_next_stage[::-1]
+    logger.debug("results\n{0}".format(nwr_dict['results']))
+    return nwr_dict
 
 
 # Given how it's built, n should be a power of 2, or, at least,
@@ -89,3 +144,10 @@ def _benes_permutation_pattern_support(start, end, swap_step, flip_q_idx,
         start + swap_step, start + swap_step + for_iter_next,
         int(swap_step / 2), flip_q_idx, nwr_dict)
     return flip_q_idx
+
+
+if __name__ == '__main__':
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler()
+    logger.addHandler(handler)
+    _fpc_pattern(4, 3)
