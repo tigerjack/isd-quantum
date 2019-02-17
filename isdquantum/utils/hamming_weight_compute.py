@@ -1,6 +1,7 @@
 import logging
 from isdquantum.utils import binary
 from isdquantum.utils import adder
+from isdquantum.utils import qregs
 from math import ceil, log
 
 logger = logging.getLogger(__name__)
@@ -119,3 +120,41 @@ def get_circuit_for_qubits_weight_get_pattern(n):
     patterns_dict['results'] = inputs_next_stage[::-1]
     logger.debug("results\n{0}".format(patterns_dict['results']))
     return patterns_dict
+
+
+# Circuit to check if a given set of register has weight equal to eq_int
+# eq_q is set to 1 in this case
+def get_circuit_for_qubits_weight_check(circuit, a_qs, cin_q, cout_qs, eq_q,
+                                        anc_q, weight_int, patterns_dict):
+    equal_str = binary.get_bitstring_from_int(weight_int,
+                                              len(patterns_dict['results']))
+    result_qubits = get_circuit_for_qubits_weight(circuit, a_qs, cin_q,
+                                                  cout_qs, patterns_dict)
+    _ = qregs.initialize_qureg_to_complement_of_bitstring(
+        equal_str, result_qubits, circuit)
+
+    circuit.mct([qb for qb in result_qubits], eq_q[0], anc_q, mode='advanced')
+    return result_qubits
+
+
+def get_circuit_for_qubits_weight_check_i(circuit,
+                                          a_qs,
+                                          cin_q,
+                                          cout_qs,
+                                          eq_q,
+                                          anc_q,
+                                          weight_int,
+                                          patterns_dict,
+                                          result_qubits,
+                                          uncomputeEq=True):
+    equal_str = binary.get_bitstring_from_int(weight_int,
+                                              len(patterns_dict['results']))
+    if uncomputeEq:
+        circuit.mct([qb for qb in result_qubits],
+                    eq_q[0],
+                    anc_q,
+                    mode='advanced')
+    _ = qregs.initialize_qureg_to_complement_of_bitstring(
+        equal_str, result_qubits, circuit)
+    get_circuit_for_qubits_weight_i(circuit, a_qs, cin_q, cout_qs,
+                                    patterns_dict)

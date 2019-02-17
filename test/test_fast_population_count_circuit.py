@@ -136,16 +136,19 @@ class PopulationCountTestCase(CircuitTestCase):
         qc.add_register(eq, anc, cr)
 
         qc.h(a)
-        result_qubits = hwc.get_circuit_for_qubits_weight(
-            qc, a, cin, cout, nwr_dict)
-        equal_str = binary.get_bitstring_from_int(weight_int,
-                                                  len(result_qubits))
-        _ = qregs.initialize_qureg_to_complement_of_bitstring(
-            equal_str, result_qubits, qc)
-        qc.mct([qb for qb in result_qubits], eq[0], anc, mode='advanced')
-        _ = qregs.initialize_qureg_to_complement_of_bitstring(
-            equal_str, result_qubits, qc)
-        hwc.get_circuit_for_qubits_weight_i(qc, a, cin, cout, nwr_dict)
+        result_qubits = hwc.get_circuit_for_qubits_weight_check(
+            qc, a, cin, cout, eq, anc, weight_int, nwr_dict)
+        hwc.get_circuit_for_qubits_weight_check_i(
+            qc,
+            a,
+            cin,
+            cout,
+            eq,
+            anc,
+            weight_int,
+            nwr_dict,
+            result_qubits,
+            uncomputeEq=False)
 
         qc.measure([aq for aq in a] + [eq[0]], cr)
 
