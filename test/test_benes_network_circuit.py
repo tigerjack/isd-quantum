@@ -2,7 +2,7 @@ import logging
 from math import factorial
 from parameterized import parameterized
 from test.common_circuit import CircuitTestCase
-from isdquantum.utils import permutation_recursion
+from isdquantum.utils import hamming_weight_generate as hwg
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 
@@ -10,8 +10,7 @@ class PermRecTestCase(CircuitTestCase):
     @classmethod
     def setUpClass(cls):
         CircuitTestCase.setUpClass()
-        perm_logger = logging.getLogger(
-            'isdquantum.utils.permutation_recursion')
+        perm_logger = logging.getLogger('isdquantum.utils.hamming_weight')
         perm_logger.setLevel(cls.logger.level)
         perm_logger.handlers = cls.logger.handlers
 
@@ -43,7 +42,8 @@ class PermRecTestCase(CircuitTestCase):
         # ('n16w1r', 16, 1, True),
     ])
     def test_patterns(self, name, n, w, reverse):
-        permutation_dict = permutation_recursion._ncr_permutation_pattern(n, w)
+        permutation_dict = hwg.generate_qubits_with_given_weight_benes_get_pattern(
+            n, w)
         self.logger.debug("n_flips = {0}".format(permutation_dict['n_flips']))
         self.logger.debug("n_lines = {0}".format(permutation_dict['n_lines']))
         selectors_q = QuantumRegister(permutation_dict['n_lines'], 'sel')
@@ -70,7 +70,7 @@ class PermRecTestCase(CircuitTestCase):
         self.circuit.add_register(cr)
         self.circuit.measure(selectors_q, cr)
 
-        counts = CircuitTestCase.execute_qasm(self.circuit)
+        counts = CircuitTestCase.execute_qasm(self.circuit, shots=2048)
         counts_exp = 1 if reverse else factorial(n) / factorial(w) / factorial(
             n - w)
         self.assertEqual(len(counts), counts_exp)

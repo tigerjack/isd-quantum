@@ -2,16 +2,15 @@ import logging
 from parameterized import parameterized
 from math import log, ceil
 from test.common import BasicTestCase
-from isdquantum.utils import permutation_recursion
+from isdquantum.utils import hamming_weight_generate as hwg
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 
 
-class PermutationTest(BasicTestCase):
+class BenesNetworkTestCase(BasicTestCase):
     @classmethod
     def setUpClass(cls):
         BasicTestCase.setUpClass()
-        perm_logger = logging.getLogger(
-            'isdquantum.utils.permutation_recursion')
+        perm_logger = logging.getLogger('isdquantum.utils.hamming_weight')
         perm_logger.setLevel(cls.logger.level)
         perm_logger.handlers = cls.logger.handlers
 
@@ -57,7 +56,7 @@ class PermutationTest(BasicTestCase):
     ])
     def test_patterns(self, name, n, w):
         self._init_swaps_per_step_pattern(n, w)
-        pattern = permutation_recursion._ncr_permutation_pattern(n, w)
+        pattern = hwg.generate_qubits_with_given_weight_benes_get_pattern(n, w)
         try:
             self.assertEqual(self.n_flips, len(pattern['swaps_pattern']))
         except:

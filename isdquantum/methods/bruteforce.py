@@ -1,6 +1,7 @@
 import logging
 from isdquantum.utils import qregs
-from isdquantum.utils import permutation_recursion
+from isdquantum.utils import hamming_weight_generate as hwg
+from isdquantum.utils import hamming_weight_compute as hwc
 
 _logger = logging.getLogger(__name__)
 
@@ -36,8 +37,8 @@ class BruteforceISD():
         self.circuit = QuantumCircuit(name="isd_{0}_{1}_{2}_{3}".format(
             self.n, self.r, self.w, self.mct_mode))
         # To compute ncr_flip_q size and the permutation pattern
-        self.ncr_benes_dict = permutation_recursion.get_all_n_bits_weight_r(
-            self.n, self.w, mode='benes')
+        self.ncr_benes_dict = hwg.generate_qubits_with_given_weight_benes_get_pattern(
+            self.n, self.w)
 
         # We don't use only n qubits, but the nearest power of 2
         self.selectors_q = QuantumRegister(self.ncr_benes_dict['n_lines'],
@@ -73,23 +74,14 @@ class BruteforceISD():
 
     def _ncr_benes(self):
         self.circuit.h(self.ncr_flip_q)
-        for i in range(self.ncr_benes_dict['to_negate_range']):
-            self.circuit.x(self.selectors_q[i])
-
-        for i in self.ncr_benes_dict['swaps_pattern']:
-            self.circuit.cswap(self.ncr_flip_q[i[0]], self.selectors_q[i[1]],
-                               self.selectors_q[i[2]])
-        if self.ncr_benes_dict['negated_permutation']:
-            self.circuit.x(self.selectors_q)
+        hwg.generate_qubits_with_given_weight_benes(
+            self.circuit, self.selectors_q, self.ncr_flip_q,
+            self.ncr_benes_dict)
 
     def _ncr_benes_i(self):
-        if self.ncr_benes_dict['negated_permutation']:
-            self.circuit.x(self.selectors_q)
-        for i in self.ncr_benes_dict['swaps_pattern'][::-1]:
-            self.circuit.cswap(self.ncr_flip_q[i[0]], self.selectors_q[i[1]],
-                               self.selectors_q[i[2]])
-        for i in range(self.ncr_benes_dict['to_negate_range']):
-            self.circuit.x(self.selectors_q[i])
+        hwg.generate_qubits_with_given_weight_benes_i(
+            self.circuit, self.selectors_q, self.ncr_flip_q,
+            self.ncr_benes_dict)
         self.circuit.h(self.ncr_flip_q)
 
     def _matrix2gates(self):

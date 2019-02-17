@@ -1,5 +1,5 @@
 import logging
-from isdquantum.utils import nwr
+from isdquantum.utils import hamming_weight_compute as hwc
 from isdquantum.utils import adder
 from isdquantum.utils import binary
 from isdquantum.utils import qregs
@@ -8,7 +8,6 @@ from math import factorial
 from parameterized import parameterized
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.aqua import utils
-import unittest
 
 
 class PopulationCountTestCase(CircuitTestCase):
@@ -23,9 +22,8 @@ class PopulationCountTestCase(CircuitTestCase):
         ("11001011"),
         ("11010000"),
     ])
-    @unittest.skip("No reason")
     def test_fast_population_count(self, name):
-        nwr_dict = nwr.get_bits_weight_pattern(len(name))
+        nwr_dict = hwc.get_circuit_for_qubits_weight_get_pattern(len(name))
         result_bit_length = len(nwr_dict['results'])
         a = QuantumRegister(nwr_dict['n_lines'], 'a')
         cin = QuantumRegister(1, 'cin')
@@ -34,7 +32,8 @@ class PopulationCountTestCase(CircuitTestCase):
         qc = QuantumCircuit(cin, a, cout, cr, name='test_fpt_{0}'.format(name))
 
         _ = qregs.initialize_qureg_given_bitstring(name, a, qc)
-        to_measure_qubits = nwr.get_qubits_weight_circuit(
+
+        to_measure_qubits = hwc.get_circuit_for_qubits_weight(
             qc, a, cin, cout, nwr_dict)
 
         for i, qb in enumerate(to_measure_qubits):
@@ -59,9 +58,8 @@ class PopulationCountTestCase(CircuitTestCase):
         ("11001011"),
         ("11010000"),
     ])
-    @unittest.skip("No reason")
     def test_fast_population_count_i(self, name):
-        nwr_dict = nwr.get_bits_weight_pattern(len(name))
+        nwr_dict = hwc.get_circuit_for_qubits_weight_get_pattern(len(name))
         result_bit_length = len(nwr_dict['results'])
         a = QuantumRegister(nwr_dict['n_lines'], 'a')
         cin = QuantumRegister(1, 'cin')
@@ -70,9 +68,9 @@ class PopulationCountTestCase(CircuitTestCase):
         qc = QuantumCircuit(cin, a, cout, cr, name='test_fpt_{0}'.format(name))
 
         _ = qregs.initialize_qureg_given_bitstring(name, a, qc)
-        to_measure_qubits = nwr.get_qubits_weight_circuit(
+        to_measure_qubits = hwc.get_circuit_for_qubits_weight(
             qc, a, cin, cout, nwr_dict)
-        nwr.get_qubits_weight_circuit_i(qc, a, cin, cout, nwr_dict)
+        hwc.get_circuit_for_qubits_weight_i(qc, a, cin, cout, nwr_dict)
 
         qc.measure(a, cr)
 
@@ -92,9 +90,8 @@ class PopulationCountTestCase(CircuitTestCase):
         ("11001011"),
         ("11010000"),
     ])
-    @unittest.skip("No reason")
     def test_fast_population_count_full_i(self, name):
-        nwr_dict = nwr.get_bits_weight_pattern(len(name))
+        nwr_dict = hwc.get_circuit_for_qubits_weight_get_pattern(len(name))
         result_bit_length = len(nwr_dict['results'])
         a = QuantumRegister(nwr_dict['n_lines'], 'a')
         cin = QuantumRegister(1, 'cin')
@@ -103,9 +100,9 @@ class PopulationCountTestCase(CircuitTestCase):
         qc = QuantumCircuit(cin, a, cout, cr, name='test_fpt_{0}'.format(name))
 
         _ = qregs.initialize_qureg_given_bitstring(name, a, qc)
-        to_measure_qubits = nwr.get_qubits_weight_circuit(
+        to_measure_qubits = hwc.get_circuit_for_qubits_weight(
             qc, a, cin, cout, nwr_dict)
-        nwr.get_qubits_weight_circuit_i(qc, a, cin, cout, nwr_dict)
+        hwc.get_circuit_for_qubits_weight_i(qc, a, cin, cout, nwr_dict)
         _ = qregs.initialize_qureg_given_bitstring(name, a, qc)
 
         qc.measure(a, cr)
@@ -124,7 +121,7 @@ class PopulationCountTestCase(CircuitTestCase):
         (("3on8"), 4, 8),
     ])
     def test_fast_population_count_w_hadamards(self, name, weight_int, n_bits):
-        nwr_dict = nwr.get_bits_weight_pattern(n_bits)
+        nwr_dict = hwc.get_circuit_for_qubits_weight_get_pattern(n_bits)
         result_bit_length = len(nwr_dict['results'])
         a = QuantumRegister(nwr_dict['n_lines'], 'a')
         cin = QuantumRegister(1, 'cin')
@@ -139,8 +136,8 @@ class PopulationCountTestCase(CircuitTestCase):
         qc.add_register(eq, anc, cr)
 
         qc.h(a)
-        result_qubits = nwr.get_qubits_weight_circuit(qc, a, cin, cout,
-                                                      nwr_dict)
+        result_qubits = hwc.get_circuit_for_qubits_weight(
+            qc, a, cin, cout, nwr_dict)
         equal_str = binary.get_bitstring_from_int(weight_int,
                                                   len(result_qubits))
         _ = qregs.initialize_qureg_to_complement_of_bitstring(
@@ -148,7 +145,7 @@ class PopulationCountTestCase(CircuitTestCase):
         qc.mct([qb for qb in result_qubits], eq[0], anc, mode='advanced')
         _ = qregs.initialize_qureg_to_complement_of_bitstring(
             equal_str, result_qubits, qc)
-        nwr.get_qubits_weight_circuit_i(qc, a, cin, cout, nwr_dict)
+        hwc.get_circuit_for_qubits_weight_i(qc, a, cin, cout, nwr_dict)
 
         qc.measure([aq for aq in a] + [eq[0]], cr)
 
