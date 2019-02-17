@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 # It allows to compute all combinations of length n and weight r,
 # i.e. all combinations of length n w/ r bits set to 1.
 def get_all_n_bits_weight_r(n, r, mode):
-    if (mode == 'permutation'):
-        return _ncr_permutation_pattern(n, r)
+    if (mode == 'benes'):
+        return _benes_permutation_pattern(n, r)
     else:
         raise Exception("Mode not implemented yet")
 
@@ -31,36 +31,36 @@ def get_all_n_bits_weight_r(n, r, mode):
 #    r bits to 1 and then apply the permutation network, we initialize
 #    n - r bits to 1 and apply the permutation network. In the latter case,
 #    the obtained permutation should be negated.
-def _ncr_permutation_pattern(n, r):
-    permutation_dict = {}
+def _benes_permutation_pattern(n, r):
+    nwr_dict = {'mode': 'benes'}
     steps = ceil(log(n, 2))
-    permutation_dict['n_lines'] = 2**steps
-    permutation_dict['swaps_pattern'] = []
-    if (r == 0 or r == permutation_dict['n_lines']):
+    nwr_dict['n_lines'] = 2**steps
+    nwr_dict['swaps_pattern'] = []
+    if (r == 0 or r == nwr_dict['n_lines']):
         raise Exception("No combination is possible")
 
     # bcz ncr(8;5) == ncr(8;3)
-    if r > permutation_dict['n_lines'] / 2:
-        initial_swaps = permutation_dict['n_lines'] - r
+    if r > nwr_dict['n_lines'] / 2:
+        initial_swaps = nwr_dict['n_lines'] - r
     else:
         initial_swaps = r
 
-    _permutation_pattern_support(0, initial_swaps,
-                                 int(permutation_dict['n_lines'] / 2), 0,
-                                 permutation_dict)
-    permutation_dict['n_flips'] = len(permutation_dict['swaps_pattern'])
+    _benes_permutation_pattern_support(0, initial_swaps,
+                                       int(nwr_dict['n_lines'] / 2), 0,
+                                       nwr_dict)
+    nwr_dict['n_flips'] = len(nwr_dict['swaps_pattern'])
 
-    if (r > permutation_dict['n_lines'] / 2):
-        permutation_dict['to_negate_range'] = permutation_dict['n_lines'] - r
-        permutation_dict['negated_permutation'] = True
+    if (r > nwr_dict['n_lines'] / 2):
+        nwr_dict['to_negate_range'] = nwr_dict['n_lines'] - r
+        nwr_dict['negated_permutation'] = True
     else:
-        permutation_dict['to_negate_range'] = r
-        permutation_dict['negated_permutation'] = False
-    return permutation_dict
+        nwr_dict['to_negate_range'] = r
+        nwr_dict['negated_permutation'] = False
+    return nwr_dict
 
 
-def _permutation_pattern_support(start, end, swap_step, flip_q_idx,
-                                 permutation_dict):
+def _benes_permutation_pattern_support(start, end, swap_step, flip_q_idx,
+                                       nwr_dict):
     logger.debug("Start: {0}, end: {1}, swap_step: {2}".format(
         start, end, swap_step))
     if (swap_step == 0 or start >= end):
@@ -72,22 +72,20 @@ def _permutation_pattern_support(start, end, swap_step, flip_q_idx,
         for_iter += 1
         logger.info("cswap({2}, {0}, {1})".format(i, i + swap_step,
                                                   flip_q_idx))
-        permutation_dict['swaps_pattern'].append((flip_q_idx, i,
-                                                  i + swap_step))
+        nwr_dict['swaps_pattern'].append((flip_q_idx, i, i + swap_step))
         flip_q_idx += 1
 
     for_iter_next = min(for_iter, int(swap_step / 2))
     logger.debug(
         "Before recursion 1, start: {0}, end: {1}, swap_step: {2}, for_iter_next"
         .format(start, end, swap_step, for_iter_next))
-    flip_q_idx = _permutation_pattern_support(start, start + for_iter_next,
-                                              int(swap_step / 2), flip_q_idx,
-                                              permutation_dict)
+    flip_q_idx = _benes_permutation_pattern_support(
+        start, start + for_iter_next, int(swap_step / 2), flip_q_idx, nwr_dict)
 
     logger.debug(
         "Before recursion, start: {0}, end: {1}, swap_step: {2}, for_iter_next {3}"
         .format(start, end, swap_step, for_iter_next))
-    flip_q_idx = _permutation_pattern_support(
+    flip_q_idx = _benes_permutation_pattern_support(
         start + swap_step, start + swap_step + for_iter_next,
-        int(swap_step / 2), flip_q_idx, permutation_dict)
+        int(swap_step / 2), flip_q_idx, nwr_dict)
     return flip_q_idx

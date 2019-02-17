@@ -37,7 +37,7 @@ class BruteforceISD():
             self.n, self.r, self.w, self.mct_mode))
         # To compute ncr_flip_q size and the permutation pattern
         self.ncr_benes_dict = permutation_recursion.get_all_n_bits_weight_r(
-            self.n, self.w, mode='permutation')
+            self.n, self.w, mode='benes')
 
         # We don't use only n qubits, but the nearest power of 2
         self.selectors_q = QuantumRegister(self.ncr_benes_dict['n_lines'],
