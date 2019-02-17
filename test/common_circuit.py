@@ -11,10 +11,10 @@ class CircuitTestCase(BasicTestCase):
             output='mpl')
 
     @staticmethod
-    def execute_qasm(qc):
+    def execute_qasm(qc, shots=1024):
         from qiskit import BasicAer, execute
         backend = BasicAer.get_backend("qasm_simulator")
-        job = execute(qc, backend=backend)
+        job = execute(qc, backend=backend, shots=shots)
         counts = job.result().get_counts(qc)
         return counts
 
