@@ -27,6 +27,12 @@ def usage():
         'Mode for the multi-controlled Toffoli gates. Basic uses a V shape simple CNOTs, but a huge number of ancillas. Advanced (default) uses just a single ancilla, while noancilla uses none. However, these last two modes, expecially noancilla, significantly increase the depth of the circuit and the number of gates.'
     )
     parser.add_argument(
+        '--nwr_mode',
+        choices=['benes', 'fpc'],
+        default='benes',
+        #TODO
+        help='Mode for the nwr')
+    parser.add_argument(
         '-r',
         '--real',
         action='store_true',
@@ -122,36 +128,28 @@ def clean_args(args):
 
 
 def load_modules():
-    global logging, _logger
+    global logging, logger
     import logging
     import os
     logging_level = logging._nameToLevel.get(os.getenv('LOG_LEVEL'), 'INFO')
-    _logger = logging.getLogger(__name__)
-    _handler = logging.StreamHandler()
-    _formatter = logging.Formatter(
+    logger = logging.getLogger(__name__)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
         # '%(asctime)s %(levelname)-8s %(name)-12s %(funcName)-12s %(message)s')
         '>%(levelname)-8s %(name)-12s %(funcName)-12s %(message)s')
-    _handler.setFormatter(_formatter)
-    if (_logger.hasHandlers()):
-        _logger.handlers.clear()
-    _logger.addHandler(_handler)
-    _logger.setLevel(logging_level)
-    # TODO clean imports using __init__.py
-    # import sys
-    # sys.path.insert(
-    #     0, os.path.abspath(
-    #         os.path.join(os.path.dirname(__file__), '..', 'src')))
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging_level)
     global BruteforceISD, LeeBrickellISD
     from isdquantum.methods.bruteforce import BruteforceISD
     from isdquantum.methods.lee_brickell import LeeBrickellISD
-    #prange_isd_logger = logging.getLogger('prange_isd')
-    prange_isd_logger = logging.getLogger('isd.quantum.methods.bruteforce')
-    prange_isd_logger.setLevel(logging_level)
-    prange_isd_logger.addHandler(_handler)
+    other_isd_loggers = logging.getLogger('isdquantum.methods')
+    other_isd_loggers.setLevel(logging_level)
+    other_isd_loggers.addHandler(handler)
 
 
 def get_backend(args, n_qubits):
-    _logger.debug("real: {0}, online: {1}, backend_name: {2}".format(
+    logger.debug("real: {0}, online: {1}, backend_name: {2}".format(
         args.real, args.online, args.backend_name))
     args.provider = args.provider.lower()
 
@@ -195,7 +193,7 @@ def get_backend(args, n_qubits):
 
 
 def get_sample_matrix_and_random_syndrome(n, k, d, w):
-    _logger.info("Trying to get isd parameters for {0}, {1}, {2}, {3}".format(
+    logger.info("Trying to get isd parameters for {0}, {1}, {2}, {3}".format(
         n, k, d, w))
     from isdclassic.utils import rectangular_codes_hardcoded as rch
     from numpy.random import randint
@@ -204,26 +202,26 @@ def get_sample_matrix_and_random_syndrome(n, k, d, w):
 
 
 def run(qc, backend):
-    _logger.info(
+    logger.info(
         "Preparing execution with backend {0} from provider {1}".format(
             backend, backend.provider()))
     from qiskit import execute
-    _logger.debug("Execute")
+    logger.debug("Execute")
     job = execute(qc, backend, shots=8192)
-    _logger.info("Job id is {0}".format(job.job_id()))
+    logger.info("Job id is {0}".format(job.job_id()))
     if (not backend.status().operational or backend.status().pending_jobs > 2
             or backend.status().status_msg == 'calibrating'):
-        _logger.warn(
+        logger.warn(
             "Backend {0} from provider {1} can't execute the circuit any time soon, try to retrieve the result using the job id later on"
             .format(backend, backend.provider()))
         return None
     result = job.result()
-    _logger.debug("Results ready")
+    logger.debug("Results ready")
     return result
 
 
 def draw_circuit(qc, args):
-    _logger.info("Drawing circuit")
+    logger.info("Drawing circuit")
     img_file = args.img_dir + qc.name
     style_mpl = {
         'cregbundle': True,
@@ -264,7 +262,7 @@ def draw_circuit(qc, args):
 
 
 def draw_dag(qc, args):
-    _logger.info("Drawing DAG")
+    logger.info("Drawing DAG")
     img_file = args.img_dir + qc.name
     from qiskit.converters import circuit_to_dag
     dag = circuit_to_dag(qc)
@@ -274,7 +272,7 @@ def draw_dag(qc, args):
 
 def get_compiled_circuit_infos(qc, backend):
     result = {}
-    _logger.debug("Getting infos ... ")
+    logger.debug("Getting infos ... ")
     # backend_coupling = backend.configuration()['coupling_map']
     result['n_qubits_qasm'] = qc.width()
     result['depth_qasm'] = qc.depth()
@@ -306,36 +304,38 @@ def main():
     r = args.r
     d = args.d
     w = args.w
-    _logger.debug("w = {0}; n = {1}; r = {2}".format(w, n, r))
+    logger.debug("w = {0}; n = {1}; r = {2}".format(w, n, r))
 
     h, syndrome = get_sample_matrix_and_random_syndrome(n, n - r, d, w)
-    _logger.debug("Syndrome is {0}".format(syndrome))
+    logger.debug("Syndrome is {0}".format(syndrome))
 
     if (args.backend_name in ('statevector_simulator', 'unitary_simulator')):
-        _logger.debug("Measures not needed")
+        logger.debug("Measures not needed")
         need_measures = False
     else:
-        _logger.debug("Measures needed")
+        logger.debug("Measures needed")
         need_measures = True
     if args.m == 'bruteforce':
         isd_method = BruteforceISD(h, syndrome, w, need_measures,
-                                   args.mct_mode)
+                                   args.mct_mode, args.nwr_mode)
     elif args.m == 'lee_brickell':
         isd_method = LeeBrickellISD(h, syndrome, w, need_measures,
                                     args.mct_mode)
+    print("Gonna build circuit with {0} {1}".format(args.mct_mode,
+                                                    args.nwr_mode))
     qc = isd_method.build_circuit()
 
     s = args.export_qasm_file
     if s is not None:
         q = qc.qasm()
-        _logger.debug("Exporing circuit")
+        logger.debug("Exporing circuit")
         with open(s, "w+") as f:
             f.write(q)
 
     n_qubits = qc.width()
-    _logger.info("Number of qubits needed = {0}".format(n_qubits))
+    logger.info("Number of qubits needed = {0}".format(n_qubits))
     backend = get_backend(args, n_qubits)
-    _logger.debug("After function, backend name is {0}".format(backend.name()))
+    logger.debug("After function, backend name is {0}".format(backend.name()))
 
     if (args.infos):
         res = get_compiled_circuit_infos(qc, backend)
@@ -343,34 +343,34 @@ def main():
             print("{0} --> {1}".format(k, v))
 
     if (args.not_execute):
-        _logger.debug("Not execute set to true, exiting.")
+        logger.debug("Not execute set to true, exiting.")
         drawing_at_end(qc, args)
         return
 
     result = run(qc, backend)
     if result is None:
-        _logger.info("Result is none")
+        logger.info("Result is none")
         return
     plot = args.plot
     if backend.name() in 'statevector_simulator':
         statevector = result.get_statevector(qc)
-        _logger.info("State vector is\n{0}".format(statevector))
+        logger.info("State vector is\n{0}".format(statevector))
         if plot:
-            _logger.debug("Plotting")
+            logger.debug("Plotting")
             from qiskit.tools.visualization import plot_state_city
             plot_state_city(statevector)
     elif backend.name() in 'unitary_simulator':
         unitary = result.get_unitary(qc)
-        _logger.info("Circuit unitary is:\n{0}".format(unitary))
+        logger.info("Circuit unitary is:\n{0}".format(unitary))
     else:  # For qasm and real devices
         counts = result.get_counts(qc)
-        _logger.info("{0} results: \n {1}".format(len(counts), counts))
+        logger.info("{0} results: \n {1}".format(len(counts), counts))
         if plot:
-            _logger.debug("Plotting")
+            logger.debug("Plotting")
             from qiskit.tools.visualization import plot_histogram
             plot_histogram(counts)
-    _logger.info("H was\n{0}".format(h))
-    _logger.info("Syndrome was\n{0}".format(syndrome))
+    logger.info("H was\n{0}".format(h))
+    logger.info("Syndrome was\n{0}".format(syndrome))
     drawing_at_end(qc, args)
 
 
