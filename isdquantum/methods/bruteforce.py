@@ -56,7 +56,7 @@ class BruteforceISD(ISDAbstract):
                                                'select')
             self.ncr_flip_q = QuantumRegister(self.ncr_benes_dict['n_flips'],
                                               "flip")
-            self.n_func_domain = len(self.sum_q) - 1
+            self.n_func_domain = len(self.ncr_flip_q) + self.w
             self.circuit.add_register(self.selectors_q)
             self.circuit.add_register(self.ncr_flip_q)
         elif self.nwr_mode == self.NWR_FPC:
@@ -68,7 +68,7 @@ class BruteforceISD(ISDAbstract):
                                           'cout')
             self.cin_q = QuantumRegister(1, 'cin')
             self.eq_q = QuantumRegister(1, 'eq')
-            self.n_func_domain = len(self.sum_q) - 1 + len(self.eq_q)
+            self.n_func_domain = 2**len(self.selectors_q)
             self.circuit.add_register(self.cin_q)
             self.circuit.add_register(self.selectors_q)
             self.circuit.add_register(self.cout_q)
@@ -208,7 +208,7 @@ class BruteforceISD(ISDAbstract):
         from math import sqrt, pi, asin
         # TODO check formula
         # rounds = int(round((pi / 2 * sqrt(self.n_hadamards) - 1) / 2)) - 1
-        rounds = pi / (4 * asin(1 / self.n_func_domain)) - 1 / 2
+        rounds = pi / (4 * asin(1 / sqrt(self.n_func_domain))) - 1 / 2
         print("{0} rounds formally required".format(rounds))
         rounds = max(round(rounds), 1)
         print("{0} rounds required".format(rounds))
@@ -235,7 +235,7 @@ class BruteforceISD(ISDAbstract):
             # TODO uncomment, just a test
             self._hamming_weight()
         elif self.nwr_mode == self.NWR_FPC:
-            for i in range(rounds + 1):
+            for i in range(rounds):
                 self.circuit.h(self.selectors_q)
                 self._syndrome2gates()
                 self._matrix2gates()
