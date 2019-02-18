@@ -16,14 +16,14 @@ def get_circuit_for_qubits_weight(circuit, a_qs, cin_q, cout_qs,
     assert len(cin_q) == 1
     assert len(cout_qs) == patterns_dict['n_couts']
     for i in patterns_dict['adders_pattern']:
-        cout_idx = int(i[-1][1])
+        cout_idx = int(i[-1][1:])
         half_bits = int((len(i) - 1) / 2)
         input_qubits = []
         for j in i:
             if j[0] == 'a':
-                input_qubits.append(a_qs[int(j[1])])
+                input_qubits.append(a_qs[int(j[1:])])
             elif j[0] == 'c':
-                input_qubits.append(cout_qs[int(j[1])])
+                input_qubits.append(cout_qs[int(j[1:])])
             else:
                 raise Exception("Invalid")
         logger.debug("{0}".format([input_qubits[i] for i in range(half_bits)]))
@@ -37,9 +37,9 @@ def get_circuit_for_qubits_weight(circuit, a_qs, cin_q, cout_qs,
     to_measure_qubits = []
     for j in patterns_dict['results']:
         if j[0] == 'a':
-            to_measure_qubits.append(a_qs[int(j[1])])
+            to_measure_qubits.append(a_qs[int(j[1:])])
         elif j[0] == 'c':
-            to_measure_qubits.append(cout_qs[int(j[1])])
+            to_measure_qubits.append(cout_qs[int(j[1:])])
         else:
             raise Exception("Invalid")
     return to_measure_qubits
@@ -53,14 +53,14 @@ def get_circuit_for_qubits_weight_i(circuit, a_qs, cin_q, cout_qs,
     assert len(cin_q) == 1
     assert len(cout_qs) == patterns_dict['n_couts']
     for i in patterns_dict['adders_pattern'][::-1]:
-        cout_idx = int(i[-1][1])
+        cout_idx = int(i[-1][1:])
         half_bits = int((len(i) - 1) / 2)
         input_qubits = []
         for j in i:
             if j[0] == 'a':
-                input_qubits.append(a_qs[int(j[1])])
+                input_qubits.append(a_qs[int(j[1:])])
             elif j[0] == 'c':
-                input_qubits.append(cout_qs[int(j[1])])
+                input_qubits.append(cout_qs[int(j[1:])])
             else:
                 raise Exception("Invalid")
         logger.debug("{0}".format([input_qubits[i] for i in range(half_bits)]))
@@ -128,12 +128,15 @@ def get_circuit_for_qubits_weight_check(circuit, a_qs, cin_q, cout_qs, eq_q,
                                         anc_q, weight_int, patterns_dict):
     equal_str = binary.get_bitstring_from_int(weight_int,
                                               len(patterns_dict['results']))
+    circuit.barrier()
     result_qubits = get_circuit_for_qubits_weight(circuit, a_qs, cin_q,
                                                   cout_qs, patterns_dict)
+    circuit.barrier()
     _ = qregs.initialize_qureg_to_complement_of_bitstring(
         equal_str, result_qubits, circuit)
 
     circuit.mct([qb for qb in result_qubits], eq_q[0], anc_q, mode='advanced')
+    circuit.barrier()
     return result_qubits
 
 
@@ -149,12 +152,15 @@ def get_circuit_for_qubits_weight_check_i(circuit,
                                           uncomputeEq=True):
     equal_str = binary.get_bitstring_from_int(weight_int,
                                               len(patterns_dict['results']))
+    circuit.barrier()
     if uncomputeEq:
         circuit.mct([qb for qb in result_qubits],
                     eq_q[0],
                     anc_q,
                     mode='advanced')
+    circuit.barrier()
     _ = qregs.initialize_qureg_to_complement_of_bitstring(
         equal_str, result_qubits, circuit)
     get_circuit_for_qubits_weight_i(circuit, a_qs, cin_q, cout_qs,
                                     patterns_dict)
+    circuit.barrier()
