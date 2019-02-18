@@ -365,6 +365,11 @@ def main():
     else:  # For qasm and real devices
         counts = result.get_counts(qc)
         logger.info("{0} results: \n {1}".format(len(counts), counts))
+        max_val = max(counts.values())
+        max_val_status = max(counts, key=lambda key: counts[key])
+        logger.info(
+            "Max value is {0} ({2:4.2f} accuracy) for status {1}".format(
+                max_val, max_val_status, max_val / 8192))
         if plot:
             logger.debug("Plotting")
             from qiskit.tools.visualization import plot_histogram
