@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 _logger = logging.getLogger(__name__)
 
 
-class ISDAbstract(ABC):
+class ISDAbstractCircuit(ABC):
     def __init__(self, h, syndrome, w, need_measures):
         assert w > 0, "Weight must be positive"
         assert syndrome.shape[0] == h.shape[
