@@ -1,8 +1,8 @@
 import logging
 from parameterized import parameterized
-from isdquantum.utils import adder
 from isdquantum.utils import binary
-from isdquantum.utils import qregs
+from isdquantum.circuit import adder
+from isdquantum.circuit import qregs_init as qregs
 from test.common_circuit import CircuitTestCase
 from itertools import chain
 from qiskit.aqua import utils

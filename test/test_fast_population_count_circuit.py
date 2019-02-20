@@ -1,8 +1,8 @@
 import logging
-from isdquantum.utils import hamming_weight_compute as hwc
-from isdquantum.utils import adder
 from isdquantum.utils import binary
-from isdquantum.utils import qregs
+from isdquantum.circuit import hamming_weight_compute as hwc
+from isdquantum.circuit import adder
+from isdquantum.circuit import qregs_init as qregs
 from test.common_circuit import CircuitTestCase
 from math import factorial
 from parameterized import parameterized

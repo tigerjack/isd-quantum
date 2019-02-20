@@ -2,15 +2,15 @@ import logging
 from math import factorial
 from parameterized import parameterized
 from test.common_circuit import CircuitTestCase
-from isdquantum.utils import hamming_weight_generate as hwg
+from isdquantum.circuit import hamming_weight_generate as hwg
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 
-class PermRecTestCase(CircuitTestCase):
+class BenesTestCase(CircuitTestCase):
     @classmethod
     def setUpClass(cls):
         CircuitTestCase.setUpClass()
-        perm_logger = logging.getLogger('isdquantum.utils.hamming_weight')
+        perm_logger = logging.getLogger('isdquantum.circuit.hamming_weight')
         perm_logger.setLevel(cls.logger.level)
         perm_logger.handlers = cls.logger.handlers
 

@@ -1,7 +1,7 @@
 import logging
 from parameterized import parameterized
 from isdquantum.utils import binary
-from isdquantum.utils import qregs
+from isdquantum.circuit import qregs_init as qregs
 from test.common_circuit import CircuitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info import state_fidelity

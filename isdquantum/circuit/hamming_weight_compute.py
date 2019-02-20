@@ -1,7 +1,7 @@
 import logging
 from isdquantum.utils import binary
-from isdquantum.utils import adder
-from isdquantum.utils import qregs
+from isdquantum.circuit import adder
+from isdquantum.circuit import qregs_init as qregs
 from math import ceil, log
 
 logger = logging.getLogger(__name__)

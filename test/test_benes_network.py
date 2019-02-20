@@ -2,7 +2,7 @@ import logging
 from parameterized import parameterized
 from math import log, ceil
 from test.common import BasicTestCase
-from isdquantum.utils import hamming_weight_generate as hwg
+from isdquantum.circuit import hamming_weight_generate as hwg
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 
 
@@ -10,7 +10,7 @@ class BenesNetworkTestCase(BasicTestCase):
     @classmethod
     def setUpClass(cls):
         BasicTestCase.setUpClass()
-        perm_logger = logging.getLogger('isdquantum.utils.hamming_weight')
+        perm_logger = logging.getLogger('isdquantum.circuit.hamming_weight')
         perm_logger.setLevel(cls.logger.level)
         perm_logger.handlers = cls.logger.handlers
 
