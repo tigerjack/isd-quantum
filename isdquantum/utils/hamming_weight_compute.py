@@ -73,6 +73,11 @@ def get_circuit_for_qubits_weight_i(circuit, a_qs, cin_q, cout_qs,
              for i in range(half_bits, 2 * half_bits)], [cout_qs[cout_idx]])
 
 
+#Given n bits, itr returns the pattern to compute the weight of this n bits, i.e.
+# 1. n_lines required (>= n, the closest power of 2)
+# 2. n_couts, the total number of couts required by the adders
+# 3. adders_pattern, the pattern of adders
+# 4. results, the bits containing the final results
 def get_circuit_for_qubits_weight_get_pattern(n):
     steps = ceil(log(n, 2))
     # TODO maybe we can use fewer lines
@@ -134,6 +139,7 @@ def get_circuit_for_qubits_weight_check(circuit, a_qs, cin_q, cout_qs, eq_q,
     circuit.barrier()
     _ = qregs.initialize_qureg_to_complement_of_bitstring(
         equal_str, result_qubits, circuit)
+    circuit.barrier()
 
     circuit.mct([qb for qb in result_qubits], eq_q[0], anc_q, mode='advanced')
     circuit.barrier()
@@ -161,6 +167,7 @@ def get_circuit_for_qubits_weight_check_i(circuit,
     circuit.barrier()
     _ = qregs.initialize_qureg_to_complement_of_bitstring(
         equal_str, result_qubits, circuit)
+    circuit.barrier()
     get_circuit_for_qubits_weight_i(circuit, a_qs, cin_q, cout_qs,
                                     patterns_dict)
     circuit.barrier()

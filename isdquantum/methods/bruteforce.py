@@ -18,6 +18,9 @@ class BruteforceISD(ISDAbstract):
 
     # mct stands for qiskit aqua multicontrol
     # nwr stands for n bits of weight r
+    # nwr int is the number of qubits we want to be set to 1. F.e. if it's 1, we want
+    # that just 1 over n qubits is set to 1. This is equal the weight w for bruteforce,
+    # while w - p for lee_brickell
     def __init__(self, h, syndrome, w, need_measures, mct_mode, nwr_mode):
         super().__init__(h, syndrome, w, need_measures)
         self.mct_mode = mct_mode
