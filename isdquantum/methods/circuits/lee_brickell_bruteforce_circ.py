@@ -6,6 +6,7 @@ from isdquantum.circuit import hamming_weight_compute as hwc
 from qiskit.aqua import utils
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister, QuantumCircuit
+from math import sqrt, pi, asin
 
 _logger = logging.getLogger(__name__)
 
@@ -28,6 +29,10 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
     def __init__(self, h, v, syndrome, w, p, need_measures, mct_mode,
                  nwr_mode):
         super().__init__(h, syndrome, w, need_measures)
+        # TODO Unneeded h and n for this algorithm, maybe delete from __init__
+        # and modify super class
+        del self.h
+        del self.n
         assert p >= 0, "p must be non negative"
         assert p <= w, "p must be less than or equal to weight"
         assert v.shape[0] == self.r and v.shape[
@@ -37,8 +42,8 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.nwr_mode = nwr_mode
         self.v = v
         _logger.info(
-            "n: {0}, r: {1}, w: {2}, syndrome: {3}, measures: {4}, mct_mode: {5}"
-            .format(self.n, self.r, self.w, self.syndrome, self.need_measures,
+            "k: {0}, r: {1}, w: {2}, syndrome: {3}, measures: {4}, mct_mode: {5}"
+            .format(self.k, self.r, self.w, self.syndrome, self.need_measures,
                     self.mct_mode))
         if mct_mode not in self.MCT_MODES:
             raise Exception("Invalid mct_mode selected")
@@ -55,10 +60,8 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
 
         """
         self.circuit = QuantumCircuit(
-            name="isd_lee_n{0}_r{1}_w{2}_p{3}_{4}_{5}".format(
-                self.n, self.r, self.w, self.p, self.mct_mode, self.nwr_mode))
-        del self.n
-        # del self.r
+            name="isd_lee_k{0}_r{1}_w{2}_p{3}_{4}_{5}".format(
+                self.k, self.r, self.w, self.p, self.mct_mode, self.nwr_mode))
         if self.nwr_mode == self.NWR_BENES:
             # To compute benes_flip_q size and the permutation pattern
             self.benes_dict = hwg.generate_qubits_with_given_weight_benes_get_pattern(
@@ -166,7 +169,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
         for i in range(len(self.selectors_q)):
             qregs.conditionally_initialize_qureg_given_bitstring(
-                self.h[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
+                self.v[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
                 self.circuit, 'advanced')
         self.circuit.barrier()
 
@@ -174,7 +177,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
         for i in reversed(range(len(self.selectors_q))):
             qregs.conditionally_initialize_qureg_given_bitstring(
-                self.h[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
+                self.v[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
                 self.circuit, 'advanced')
         self.circuit.barrier()
 
@@ -261,9 +264,6 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self._initialize_circuit()
 
         # Number of grover iterations
-        from math import sqrt, pi, asin
-        # TODO check formula
-        # rounds = int(round((pi / 2 * sqrt(self.n_hadamards) - 1) / 2)) - 1
         rounds = pi / (4 * asin(1 / sqrt(self.n_func_domain))) - 1 / 2
         _logger.debug("{0} rounds formally required".format(rounds))
         rounds = max(round(rounds), 1)

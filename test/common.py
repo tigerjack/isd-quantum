@@ -13,7 +13,7 @@ class BasicTestCase(unittest.TestCase):
                 getenv('LOG_LEVEL'), 'INFO')
             handler = logging.StreamHandler()
             formatter = logging.Formatter(
-                '%(levelname)-8s %(funcName)-12s %(message)s')
+                '%(module)-4s %(levelname)-8s %(funcName)-12s %(message)s')
             handler.setFormatter(formatter)
             cls.logger.addHandler(handler)
             cls.logger.setLevel(logging_level)

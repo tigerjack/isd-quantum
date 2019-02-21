@@ -145,13 +145,13 @@ def export_circuit_to_qasm(qc, filename):
         f.write(q)
 
 
-def run(qc, backend):
+def run(qc, backend, shots=8192):
     logger.info(
         "Preparing execution with backend {0} from provider {1}".format(
             backend, backend.provider()))
     from qiskit import execute
     logger.debug("Execute")
-    job = execute(qc, backend, shots=8192)
+    job = execute(qc, backend, shots=shots)
     logger.info("Job id is {0}".format(job.job_id()))
     if (not backend.status().operational or backend.status().pending_jobs > 2
             or backend.status().status_msg == 'calibrating'):
