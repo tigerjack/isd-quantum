@@ -35,8 +35,6 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.p = p
         self.mct_mode = mct_mode
         self.nwr_mode = nwr_mode
-        # self.lee_int = w - p
-        # print(self.lee_int)
         self.v = v
         _logger.info(
             "n: {0}, r: {1}, w: {2}, syndrome: {3}, measures: {4}, mct_mode: {5}"
@@ -135,7 +133,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                 self.benes_dict)
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.barrier()
-            self.result_qubits = hwc.get_circuit_for_qubits_weight_check(
+            self.fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check(
                 self.circuit, self.selectors_q, self.fpc_cin_q,
                 self.fpc_cout_q, self.fpc_eq_q, self.mct_anc, self.p,
                 self.fpc_dict)
@@ -150,7 +148,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             self.circuit.h(self.benes_flip_q)
         elif self.nwr_mode == self.NWR_FPC:
             # TODO uncomputeEq should be True, here it's just used for test
-            self.result_qubits = hwc.get_circuit_for_qubits_weight_check_i(
+            self.fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check_i(
                 self.circuit,
                 self.selectors_q,
                 self.fpc_cin_q,
@@ -159,7 +157,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                 self.mct_anc,
                 self.p,
                 self.fpc_dict,
-                self.result_qubits,
+                self.fpc_result_qubits,
                 uncomputeEq=True)
             self.circuit.barrier()
         self.circuit.barrier()
@@ -168,21 +166,21 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
         for i in range(len(self.selectors_q)):
             qregs.conditionally_initialize_qureg_given_bitstring(
-                self.h[:, i][::-1].tolist(), self.sum_q, [self.selectors_q[i]],
-                None, self.circuit, 'advanced')
+                self.h[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
+                self.circuit, 'advanced')
         self.circuit.barrier()
 
     def _matrix2gates_i(self):
         self.circuit.barrier()
         for i in reversed(range(len(self.selectors_q))):
             qregs.conditionally_initialize_qureg_given_bitstring(
-                self.h[:, i][::-1].tolist(), self.sum_q, [self.selectors_q[i]],
-                None, self.circuit, 'advanced')
+                self.h[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
+                self.circuit, 'advanced')
         self.circuit.barrier()
 
     def _syndrome2gates(self):
         self.circuit.barrier()
-        qregs.initialize_qureg_given_bitstring(self.syndrome.tolist()[::-1],
+        qregs.initialize_qureg_given_bitstring(self.syndrome.tolist(),
                                                self.sum_q, self.circuit)
         self.circuit.barrier()
 
@@ -191,11 +189,11 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
 
     def _lee_weight_check(self):
         self.circuit.barrier()
-        self.result_qubits = hwc.get_circuit_for_qubits_weight_check(
+        self.lee_result_qubits = hwc.get_circuit_for_qubits_weight_check(
             self.circuit, self.sum_q, self.lee_cin_q, self.lee_cout_q,
             self.lee_eq_q, self.mct_anc, self.w - self.p, self.lee_fpc_dict)
         _logger.debug("Result qubits for lee weight check are {}".format(
-            self.result_qubits))
+            self.lee_result_qubits))
         self.circuit.barrier()
 
     def _lee_weight_check_i(self):
@@ -210,7 +208,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             self.mct_anc,
             self.w - self.p,
             self.lee_fpc_dict,
-            self.result_qubits,
+            self.lee_result_qubits,
             uncomputeEq=True)
         self.circuit.barrier()
 
@@ -271,40 +269,37 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         rounds = max(round(rounds), 1)
         _logger.debug("{0} rounds required".format(rounds))
         if self.nwr_mode == self.NWR_BENES:
+            self._hamming_weight()
             for i in range(rounds):
                 _logger.debug("ITERATION {0}".format(i))
-                self._hamming_weight()
                 self._matrix2gates()
                 self._syndrome2gates()
                 self._lee_weight_check()
                 # TODO break put here for a test
                 # break
-
                 self._oracle()
                 self._lee_weight_check_i()
                 self._syndrome2gates_i()
                 self._matrix2gates_i()
-                self._hamming_weight_i()
 
+                self._hamming_weight_i()
                 self._negate_for_inversion()
                 self._inversion_about_zero()
                 self._negate_for_inversion()
+                self._hamming_weight()
 
-            # TODO comment this fo tests
-            self._hamming_weight()
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.h(self.selectors_q)
-            # TODO DIRTY HACK for tests
             for i in range(rounds):
-                self._syndrome2gates()
                 self._matrix2gates()
+                self._syndrome2gates()
                 self._hamming_weight()
                 self._lee_weight_check()
                 self._oracle()
                 self._lee_weight_check_i()
                 self._hamming_weight_i()
-                self._matrix2gates_i()
                 self._syndrome2gates_i()
+                self._matrix2gates_i()
                 self.circuit.h(self.selectors_q)
                 self._negate_for_inversion()
                 self._inversion_about_zero()
@@ -327,7 +322,6 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             # self.circuit.add_register(cr3)
             # self.circuit.measure(to_measure_3, cr3)
             # if self.nwr_mode == 'benes':
-            #     print('benes')
             #     to_measure_4 = self.benes_flip_q
             #     cr4 = ClassicalRegister(len(to_measure_4))
             #     self.circuit.add_register(cr4)

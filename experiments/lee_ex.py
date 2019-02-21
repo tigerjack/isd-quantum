@@ -146,32 +146,47 @@ def get_fixed_5():
 
 # Try to launch quantum algorithm with a specific V obtained from classical algorithm
 # for which we are sure that there exist a correct error
-def ex_fixed():
-    hr, v, perm, w, p, s_sig, exp_comb, exp_e_hat, exp_e = get_fixed_5()
+def ex_fixed(n, mode):
+    if n == 1:
+        hr, v, perm, w, p, s_sig, exp_comb, exp_e_hat, exp_e = get_fixed_1()
+    elif n == 2:
+        hr, v, perm, w, p, s_sig, exp_comb, exp_e_hat, exp_e = get_fixed_2()
+    elif n == 3:
+        hr, v, perm, w, p, s_sig, exp_comb, exp_e_hat, exp_e = get_fixed_3()
+    elif n == 4:
+        hr, v, perm, w, p, s_sig, exp_comb, exp_e_hat, exp_e = get_fixed_4()
+    elif n == 5:
+        hr, v, perm, w, p, s_sig, exp_comb, exp_e_hat, exp_e = get_fixed_5()
+
+    shots = 4098
+    hr, v, perm, w, p, s_sig, exp_comb, exp_e_hat, exp_e = get_fixed_1()
     k = v.shape[0]
     wanted_sum = w - p
     print("v =\n{}".format(v))
     print("s_sig = {}".format(s_sig))
-    lb = LeeBrickellCircuit(hr, v, s_sig, w, p, True, 'advanced', 'benes')
+    lb = LeeBrickellCircuit(hr, v, s_sig, w, p, True, 'advanced', mode)
     qc = lb.build_circuit()
     from qiskit import BasicAer, execute
-    result = execute(qc, BasicAer.get_backend('qasm_simulator')).result()
+    result = execute(
+        qc, BasicAer.get_backend('qasm_simulator'), shots=shots).result()
     counts = result.get_counts()
-    print(counts)
+    print("{} counts\n{}".format(len(counts), counts))
 
     # BUILD ERROR VECTOR
     max_val = max(counts.values())
-    accuracy = max_val / 1024
+    print("max val", max_val)
+    accuracy = max_val / shots
+    print("Accuracy ", accuracy)
     max_val_status = max(counts, key=lambda key: counts[key])
+    print("max val status ", max_val_status)
     error_positions = [
         pos for pos, char in enumerate(max_val_status[::-1]) if char == '1'
     ]
     print("Error positions {}".format(error_positions))
     print("Expected error positions {}".format(exp_comb))
-    # exit(0)
-    print("Drawing")
+    # print("Drawing")
     # from isdquantum.utils import misc
-    # misc.draw_circuit(qc, 'data/img/exp/lee_fixed_5')
+    # misc.draw_circuit(qc, 'data/img/exp/lee_fixed_{}_{}'.format(n, mode))
     v_extr = v[:, error_positions]
     sum_to_s = (v_extr.sum(axis=1) + s_sig) % 2
     sum_to_s_w = np.sum(sum_to_s)
@@ -219,7 +234,8 @@ def ex_w_classic():
 
 
 def main():
-    ex_fixed()
+    # ex_fixed(1, 'fpc')
+    ex_fixed(1, 'benes')
     # ex_w_classic()
 
 
