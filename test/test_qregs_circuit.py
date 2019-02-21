@@ -30,7 +30,7 @@ class QregsTestCase(CircuitTestCase):
         qreg = QuantumRegister(bits)
         qc = QuantumCircuit(qreg)
         qregs.initialize_qureg_given_int(a_int, qreg, qc)
-        vec = CircuitTestCase.execute_statevector(qc)
+        vec = CircuitTestCase.execute_statevector(qc).get_statevector(qc)
         exp_vec = [0] * (2**bits)
         exp_vec[a_int] = 1
         f = state_fidelity(vec, exp_vec)
@@ -60,7 +60,7 @@ class QregsTestCase(CircuitTestCase):
         has_op = qregs.initialize_qureg_to_complement_of_int(a_int, qreg, qc)
         if (not has_op):
             self.skipTest("No operation to perform given bitstring")
-        vec = CircuitTestCase.execute_statevector(qc)
+        vec = CircuitTestCase.execute_statevector(qc).get_statevector(qc)
         exp_vec = [0] * (2**bits)
         neg_bs = binary.get_negated_bistring(
             binary.get_bitstring_from_int(a_int, bits))

@@ -63,7 +63,7 @@ class AdderTestCase(CircuitTestCase):
         ###############################################################
         # execute the program on qasm
         ###############################################################
-        counts = CircuitTestCase.execute_qasm(self.qc)
+        counts = CircuitTestCase.execute_qasm(self.qc).get_counts()
         expected = binary.get_bitstring_from_int(a_int + b_int, ans.size)
         self._del_qubits()
         self.assertEqual(len(counts), 1)
@@ -99,7 +99,7 @@ class AdderTestCase(CircuitTestCase):
         ###############################################################
         # execute the program on qasm
         ###############################################################
-        counts = CircuitTestCase.execute_qasm(self.qc)
+        counts = CircuitTestCase.execute_qasm(self.qc).get_counts()
         expected = binary.get_bitstring_from_int(b_int, ans.size)
         self._del_qubits()
         self.assertEqual(len(counts), 1)
@@ -137,7 +137,7 @@ class AdderTestCase(CircuitTestCase):
             self.qc.measure(self.a[j], ans[j - half_bits])
         self.qc.measure(self.cout[0], ans[half_bits])
 
-        counts = self.execute_qasm(self.qc)
+        counts = self.execute_qasm(self.qc).get_counts()
         self.logger.debug("counts {0}".format(counts))
         a_str = binary.get_bitstring_from_int(a_int, bits)
         a_half1_int = binary.get_int_from_bitstring(a_str[0:half_bits])
@@ -225,7 +225,7 @@ class AdderTestCase(CircuitTestCase):
         ###############################################################
         # execute the program on qasm
         ###############################################################
-        counts = CircuitTestCase.execute_qasm(self.qc)
+        counts = CircuitTestCase.execute_qasm(self.qc).get_counts()
         self._del_qubits()
         # self.logger.debug(counts)
         # The idea is that the eq qubit is the first bit of the result state.

@@ -39,7 +39,8 @@ class PopulationCountTestCase(CircuitTestCase):
         for i, qb in enumerate(to_measure_qubits):
             qc.measure(qb, cr[i])
 
-        counts = CircuitTestCase.execute_qasm(qc)
+        result = CircuitTestCase.execute_qasm(qc, 2048)
+        counts = result.get_counts()
         self.logger.info(counts)
         exp_w = name.count("1")
         exp_w_bitstring = binary.get_bitstring_from_int(
@@ -74,7 +75,8 @@ class PopulationCountTestCase(CircuitTestCase):
 
         qc.measure(a, cr)
 
-        counts = CircuitTestCase.execute_qasm(qc)
+        result = CircuitTestCase.execute_qasm(qc, 2048)
+        counts = result.get_counts()
         self.logger.debug(counts)
         self.assertEqual(len(counts), 1)
         self.assertIn(name, counts)
@@ -107,7 +109,8 @@ class PopulationCountTestCase(CircuitTestCase):
 
         qc.measure(a, cr)
 
-        counts = CircuitTestCase.execute_qasm(qc)
+        result = CircuitTestCase.execute_qasm(qc, 2048)
+        counts = result.get_counts()
         self.logger.debug(counts)
         self.assertEqual(len(counts), 1)
         self.assertIn('0' * len(cr), counts)
@@ -153,7 +156,8 @@ class PopulationCountTestCase(CircuitTestCase):
         qc.measure([aq for aq in a] + [eq[0]], cr)
 
         # QASM
-        counts = CircuitTestCase.execute_qasm(qc, 2048)
+        result = CircuitTestCase.execute_qasm(qc, 2048)
+        counts = result.get_counts()
         self.logger.debug(counts)
         total_actives = 0
         for i in counts.keys():
@@ -208,7 +212,8 @@ class PopulationCountTestCase(CircuitTestCase):
         qc.measure([aq for aq in a] + [eq[0]], cr)
 
         # QASM
-        counts = CircuitTestCase.execute_qasm(qc, 2048)
+        result = CircuitTestCase.execute_qasm(qc, 2048)
+        counts = result.get_counts()
         self.logger.debug(counts)
         exp_state = '0' * len(cr)
         self.assertEqual(len(counts), 1)

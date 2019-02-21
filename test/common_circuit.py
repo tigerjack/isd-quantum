@@ -15,13 +15,14 @@ class CircuitTestCase(BasicTestCase):
         from qiskit import BasicAer, execute
         backend = BasicAer.get_backend("qasm_simulator")
         job = execute(qc, backend=backend, shots=shots)
-        counts = job.result().get_counts(qc)
-        return counts
+        result = job.result()
+        # counts = job.result().get_counts(qc)
+        return result
 
     @staticmethod
     def execute_statevector(qc):
         from qiskit import BasicAer, execute
         backend = BasicAer.get_backend("statevector_simulator")
         job = execute(qc, backend=backend)
-        counts = job.result().get_statevector(qc)
-        return counts
+        result = job.result()
+        return result
