@@ -2,14 +2,19 @@ import logging
 from parameterized import parameterized
 from test.common_circuit import CircuitTestCase
 from test.common_circuit import BasicTestCase
-from isdquantum.methods.algorithms.lee_brickell_mixed_alg import LeeBrickellMixedAlg
 from isdquantum.methods.circuits.lee_brickell_bruteforce_circ import LeeBrickellCircuit
 from isdclassic.methods.lee_brickell import LeeBrickell
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 import numpy as np
 
 
-class LeeBrickellAlgTest(CircuitTestCase):
+# The idea is to first run the classical computation and
+# from it obtain the V matrix. Then launch the quantum algorithm
+# with this V matrix. In this way, we should run the QuantumCircuit
+# just one time because it is sure that we can recover the error from this
+# specific V matrix (since the classical algorithm used it to solve the
+# problem)
+class LeeBrickellCircuitTest(CircuitTestCase):
     @classmethod
     def setUpClass(cls):
         CircuitTestCase.setUpClass()
@@ -24,11 +29,6 @@ class LeeBrickellAlgTest(CircuitTestCase):
     @parameterized.expand([
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
     ])
-    # The idea is to first run the classical computation and
-    # from it obtain the V matrix. Then launch the quantum algorithm
-    # with this V matrix. In this way, we should run the QuantumCircuit
-    # just one time because it is sure that we can recover the error from this
-    # specific V matrix.
     def test_fixed_v_benes(self, name, n, k, d, w, p):
         h, _, syndromes, errors, w, _ = rch.get_isd_systematic_parameters(
             n, k, d, w)
