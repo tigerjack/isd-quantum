@@ -116,12 +116,13 @@ class PopulationCountTestCase(CircuitTestCase):
         self.assertIn('0' * len(cr), counts)
 
     @parameterized.expand([
-        (("2on4"), 2, 4),
-        (("3on4"), 3, 4),
-        (("3on8"), 1, 8),
-        (("3on8"), 2, 8),
-        (("3on8"), 3, 8),
-        (("3on8"), 4, 8),
+        ("0on4", 0, 4),
+        ("2on4", 2, 4),
+        ("3on4", 3, 4),
+        ("3on8", 1, 8),
+        ("3on8", 2, 8),
+        ("3on8", 3, 8),
+        ("3on8", 4, 8),
     ])
     def test_fast_population_count_w_hadamards(self, name, weight_int, n_bits):
         nwr_dict = hwc.get_circuit_for_qubits_weight_get_pattern(n_bits)
@@ -170,12 +171,13 @@ class PopulationCountTestCase(CircuitTestCase):
         self.assertEqual(total_actives, exp_actives)
 
     @parameterized.expand([
-        (("2on4"), 2, 4),
-        (("3on4"), 3, 4),
-        (("3on8"), 1, 8),
-        (("3on8"), 2, 8),
-        (("3on8"), 3, 8),
-        (("3on8"), 4, 8),
+        ("0on4", 0, 4),
+        ("2on4", 2, 4),
+        ("3on4", 3, 4),
+        ("3on8", 1, 8),
+        ("3on8", 2, 8),
+        ("3on8", 3, 8),
+        ("3on8", 4, 8),
     ])
     def test_fast_population_count_w_hadamards_and_reset(
             self, name, weight_int, n_bits):
