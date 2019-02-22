@@ -30,7 +30,7 @@ class LeeBrickellAlgTest(CircuitTestCase):
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
     ])
-    def test_algorithm(self, name, n, k, d, w, p):
+    def test_algorithm_benes(self, name, n, k, d, w, p):
         h, _, syndromes, errors, w, _ = rch.get_isd_systematic_parameters(
             n, k, d, w)
         self.logger.info(
@@ -42,6 +42,27 @@ class LeeBrickellAlgTest(CircuitTestCase):
                 self.logger.info("Starting subtest w/ s {}".format(s))
                 lee = LeeBrickellMixedAlg(h, s, w, p, True, 'advanced',
                                           'benes')
+                qc, result, e, accuracy = lee.run('aer', 'qasm_simulator')
+                counts = result.get_counts()
+                self.logger.debug(counts)
+                self.assertGreater(accuracy, 2 / 3)
+                np.testing.assert_array_equal(e, errors[i])
+
+    @parameterized.expand([
+        ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
+    ])
+    def test_algorithm_fpc(self, name, n, k, d, w, p):
+        h, _, syndromes, errors, w, _ = rch.get_isd_systematic_parameters(
+            n, k, d, w)
+        self.logger.info(
+            "Launching TEST w/ n = {0}, k = {1}, d = {2}, w = {3}, p = {4}".
+            format(n, k, d, w, p))
+        self.logger.debug("h = \n{0}".format(h))
+        for i, s in enumerate(syndromes):
+            with self.subTest(s=s):
+                self.logger.info("Starting subtest w/ s {}".format(s))
+                lee = LeeBrickellMixedAlg(h, s, w, p, True, 'advanced', 'fpc')
                 qc, result, e, accuracy = lee.run('aer', 'qasm_simulator')
                 counts = result.get_counts()
                 self.logger.debug(counts)

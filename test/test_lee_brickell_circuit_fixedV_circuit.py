@@ -18,9 +18,9 @@ class LeeBrickellCircuitTest(CircuitTestCase):
     @classmethod
     def setUpClass(cls):
         CircuitTestCase.setUpClass()
-        other_logger = logging.getLogger('isdclassic')
-        other_logger.setLevel(cls.logger.level)
-        other_logger.handlers = cls.logger.handlers
+        # other_logger = logging.getLogger('isdclassic')
+        # other_logger.setLevel(cls.logger.level)
+        # other_logger.handlers = cls.logger.handlers
         other_logger = logging.getLogger(
             'isdquantum.methods.circuits.lee_brickell_bruteforce_circ')
         other_logger.setLevel(cls.logger.level)
@@ -74,9 +74,9 @@ class LeeBrickellCircuitTest(CircuitTestCase):
 
                 # BUILD ERROR VECTOR
                 max_val = max(counts.values())
+                max_val_status = max(counts, key=lambda key: counts[key])
                 accuracy = max_val / shots
                 self.assertGreater(accuracy, 2 / 3)
-                max_val_status = max(counts, key=lambda key: counts[key])
                 error_positions = [
                     pos for pos, char in enumerate(max_val_status[::-1])
                     if char == '1'
@@ -139,8 +139,8 @@ class LeeBrickellCircuitTest(CircuitTestCase):
                 # QUANTUM
                 wanted_sum = w - p
                 shots = 4098
-                # print("v =\n{}".format(v))
-                # print("s_sig = ".format(s_sig))
+                self.logger.debug("v =\n{}".format(v))
+                self.logger.debug("s_sig = ".format(s_sig))
                 lb = LeeBrickellCircuit(hr, v, s_sig, w, p, True, 'advanced',
                                         'fpc')
                 qc = lb.build_circuit()
