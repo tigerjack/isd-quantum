@@ -29,7 +29,7 @@ class LeeBrickellMixedAlg(ISDAbstractAlg):
             # Quantum algorithm to check which of the (k choose p) combination of
             # p columns, added to the syndrome, has weight w - p
             # Q.A. will return the specific combination of column
-            isd_method = LeeBrickellCircuit(hr, v, s_sig, self.w, self.p,
+            isd_method = LeeBrickellCircuit(v, s_sig, self.w, self.p,
                                             self.need_measures, self.mct_mode,
                                             self.nwr_mode)
             logger.info("Classic end, Lee bricked quantum start")

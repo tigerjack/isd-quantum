@@ -25,11 +25,11 @@ class BruteforceAlg(ISDAbstractAlg):
         # process_compiled_circuit(args, qc, backend)
         return qc, backend
 
-    def run_circuit_on_backend(self, qc, backend):
-        result = misc.run(qc, backend)
+    def run_circuit_on_backend(self, qc, backend, shots):
+        result = misc.run(qc, backend, shots)
         counts = result.get_counts(qc)
         max_val = max(counts.values())
-        accuracy = max_val / 8192
+        accuracy = max_val / shots
         max_val_status = max(counts, key=lambda key: counts[key])
         logger.info(
             "Max value is {0} ({2:4.2f} accuracy) for status {1}".format(
@@ -40,3 +40,10 @@ class BruteforceAlg(ISDAbstractAlg):
             if c == '1':
                 error[i] = 1
         return result, error, accuracy
+
+    def run(self, provider_name, backend_name, shots=8192):
+        qc, backend = self.prepare_circuit_for_backend(provider_name,
+                                                       backend_name)
+        result, error, accuracy = self.run_circuit_on_backend(
+            qc, backend, shots)
+        return qc, result, error, accuracy

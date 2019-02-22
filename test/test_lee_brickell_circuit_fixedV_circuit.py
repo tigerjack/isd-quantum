@@ -65,7 +65,7 @@ class LeeBrickellCircuitTest(CircuitTestCase):
                 shots = 4098
                 # print("v =\n{}".format(v))
                 # print("s_sig = ".format(s_sig))
-                lb = LeeBrickellCircuit(hr, v, s_sig, w, p, True, 'advanced',
+                lb = LeeBrickellCircuit(v, s_sig, w, p, True, 'advanced',
                                         'benes')
                 qc = lb.build_circuit()
                 result = self.execute_qasm(qc, shots=shots)
@@ -141,7 +141,7 @@ class LeeBrickellCircuitTest(CircuitTestCase):
                 shots = 4098
                 self.logger.debug("v =\n{}".format(v))
                 self.logger.debug("s_sig = ".format(s_sig))
-                lb = LeeBrickellCircuit(hr, v, s_sig, w, p, True, 'advanced',
+                lb = LeeBrickellCircuit(v, s_sig, w, p, True, 'advanced',
                                         'fpc')
                 qc = lb.build_circuit()
                 result = self.execute_qasm(qc, shots=shots)

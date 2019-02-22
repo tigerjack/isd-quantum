@@ -18,3 +18,7 @@ class ISDAbstractAlg(ABC):
         self.need_measures = need_measures
         self.mct_mode = mct_mode
         self.nwr_mode = nwr_mode
+
+    @abstractmethod
+    def run(self, provider_name, backend_name, shots):
+        pass
