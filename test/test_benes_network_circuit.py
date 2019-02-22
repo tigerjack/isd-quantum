@@ -70,8 +70,7 @@ class BenesTestCase(CircuitTestCase):
         self.circuit.add_register(cr)
         self.circuit.measure(selectors_q, cr)
 
-        counts = CircuitTestCase.execute_qasm(
-            self.circuit, shots=2048).get_statevector(qc)
+        counts = CircuitTestCase.execute_qasm(self.circuit).get_counts()
         counts_exp = 1 if reverse else factorial(n) / factorial(w) / factorial(
             n - w)
         self.assertEqual(len(counts), counts_exp)
