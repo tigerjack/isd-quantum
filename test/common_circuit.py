@@ -1,28 +1,19 @@
 from test.common import BasicTestCase
+from isdquantum.utils import misc
 
 
 class CircuitTestCase(BasicTestCase):
     @staticmethod
     def draw_circuit(circuit, filename):
-        from qiskit.tools.visualization import circuit_drawer
-        circuit_drawer(
-            circuit,
-            filename="data/img/test/" + filename + '.png',
-            output='mpl')
+        misc.draw_circuit(qc, "data/img/test/" + filename)
 
     @staticmethod
     def execute_qasm(qc, shots=1024):
-        from qiskit import BasicAer, execute
-        backend = BasicAer.get_backend("qasm_simulator")
-        job = execute(qc, backend=backend, shots=shots)
-        result = job.result()
-        # counts = job.result().get_counts(qc)
-        return result
+        backend = misc.get_backend('basicaer', 'qasm_simulator', qc.width())
+        return misc.run(qc, backend, shots)
 
     @staticmethod
     def execute_statevector(qc):
-        from qiskit import BasicAer, execute
-        backend = BasicAer.get_backend("statevector_simulator")
-        job = execute(qc, backend=backend)
-        result = job.result()
-        return result
+        backend = misc.get_backend('basicaer', 'statevector_simulator',
+                                   qc.width())
+        return misc.run(qc, backend, 1)
