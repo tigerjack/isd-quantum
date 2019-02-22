@@ -42,9 +42,9 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.nwr_mode = nwr_mode
         self.v = v
         _logger.info(
-            "k: {0}, r: {1}, w: {2}, syndrome: {3}, measures: {4}, mct_mode: {5}"
-            .format(self.k, self.r, self.w, self.syndrome, self.need_measures,
-                    self.mct_mode))
+            "k: {}, r: {}, w: {}, p: {}, syndrome: {}, measures: {}, mct_mode: {}, nwr_mode: {}"
+            .format(self.k, self.r, self.w, self.p, self.syndrome,
+                    self.need_measures, self.mct_mode, self.nwr_mode))
         if mct_mode not in self.MCT_MODES:
             raise Exception("Invalid mct_mode selected")
         if nwr_mode not in self.NWR_MODES:
@@ -62,6 +62,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit = QuantumCircuit(
             name="isd_lee_k{0}_r{1}_w{2}_p{3}_{4}_{5}".format(
                 self.k, self.r, self.w, self.p, self.mct_mode, self.nwr_mode))
+        qubits_involved_in_multicontrols = []
         if self.nwr_mode == self.NWR_BENES:
             # To compute benes_flip_q size and the permutation pattern
             self.benes_dict = hwg.generate_qubits_with_given_weight_benes_get_pattern(
@@ -75,6 +76,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             self.n_func_domain = len(self.benes_flip_q) + self.w
             self.circuit.add_register(self.selectors_q)
             self.circuit.add_register(self.benes_flip_q)
+            self.inversion_about_zero_qubits = self.benes_flip_q
         elif self.nwr_mode == self.NWR_FPC:
             self.fpc_dict = hwc.get_circuit_for_qubits_weight_get_pattern(
                 self.k)
@@ -91,10 +93,16 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             self.circuit.add_register(self.fpc_cout_q)
             self.circuit.add_register(self.fpc_eq_q)
             self.circuit.add_register(self.fpc_two_eq_q)
+            self.inversion_about_zero_qubits = self.selectors_q
+            qubits_involved_in_multicontrols.append(
+                len(self.fpc_dict['results']))
 
         # We should implement a check on n if it's not a power of 2
         if len(self.selectors_q) != self.k:
             raise Exception("A.T.M. we can't have less registers")
+
+        qubits_involved_in_multicontrols.append(
+            len(self.inversion_about_zero_qubits[1:]))
 
         self.lee_fpc_dict = hwc.get_circuit_for_qubits_weight_get_pattern(
             self.r)
@@ -107,25 +115,26 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.add_register(self.lee_cin_q)
         self.circuit.add_register(self.lee_cout_q)
         self.circuit.add_register(self.lee_eq_q)
+        qubits_involved_in_multicontrols.append(
+            len(self.lee_fpc_dict['results']))
 
         if self.mct_mode == self.MCT_ADVANCED:
             self.mct_anc = QuantumRegister(1, 'mctAnc')
             self.circuit.add_register(self.mct_anc)
         elif self.mct_mode == self.MCT_BASIC:
-            # TODO
-            raise Exception('unstable')
-            pass
-            self.mct_anc = QuantumRegister(self.benes_flip_q.size - 2,
-                                           'mctAnc')
+            _logger.debug("qubits involved in multicontrols are {}".format(
+                qubits_involved_in_multicontrols))
+            self.mct_anc = QuantumRegister(
+                max(qubits_involved_in_multicontrols) - 2, 'mctAnc')
             self.circuit.add_register(self.mct_anc)
         elif self.mct_mode == self.MCT_NOANCILLA:
             # no ancilla to add
             self.mct_anc = None
-            pass
+            # pass
         # We still need 1 ancilla for other parts of the circuit
-        if self.mct_anc == None:
-            self.mct_anc = QuantumRegister(1, 'mctAnc')
-            self.circuit.add_register(self.mct_anc)
+        # if self.mct_anc == None:
+        #     self.mct_anc = QuantumRegister(1, 'mctAnc')
+        #     self.circuit.add_register(self.mct_anc)
 
     def _hamming_weight(self):
         self.circuit.barrier()
@@ -139,7 +148,10 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             self.fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check(
                 self.circuit, self.selectors_q, self.fpc_cin_q,
                 self.fpc_cout_q, self.fpc_eq_q, self.mct_anc, self.p,
-                self.fpc_dict)
+                self.fpc_dict, self.mct_mode)
+            _logger.debug(
+                "Result qubits for Hamming Weight of selectors {}".format(
+                    self.fpc_result_qubits))
         self.circuit.barrier()
 
     def _hamming_weight_i(self):
@@ -150,6 +162,9 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                 self.benes_dict)
             self.circuit.h(self.benes_flip_q)
         elif self.nwr_mode == self.NWR_FPC:
+            _logger.debug(
+                "Result qubits for Hamming Weight inverse of selectors {}".
+                format(self.fpc_result_qubits))
             # TODO uncomputeEq should be True, here it's just used for test
             self.fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check_i(
                 self.circuit,
@@ -161,13 +176,14 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                 self.p,
                 self.fpc_dict,
                 self.fpc_result_qubits,
+                self.mct_mode,
                 uncomputeEq=True)
             self.circuit.barrier()
         self.circuit.barrier()
 
     def _matrix2gates(self):
         self.circuit.barrier()
-        for i in range(len(self.selectors_q)):
+        for i in range(self.v.shape[1]):
             qregs.conditionally_initialize_qureg_given_bitstring(
                 self.v[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
                 self.circuit, 'advanced')
@@ -175,7 +191,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
 
     def _matrix2gates_i(self):
         self.circuit.barrier()
-        for i in reversed(range(len(self.selectors_q))):
+        for i in reversed(range(self.v.shape[1])):
             qregs.conditionally_initialize_qureg_given_bitstring(
                 self.v[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
                 self.circuit, 'advanced')
@@ -194,7 +210,8 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
         self.lee_result_qubits = hwc.get_circuit_for_qubits_weight_check(
             self.circuit, self.sum_q, self.lee_cin_q, self.lee_cout_q,
-            self.lee_eq_q, self.mct_anc, self.w - self.p, self.lee_fpc_dict)
+            self.lee_eq_q, self.mct_anc, self.w - self.p, self.lee_fpc_dict,
+            self.mct_mode)
         _logger.debug("Result qubits for lee weight check are {}".format(
             self.lee_result_qubits))
         self.circuit.barrier()
@@ -212,6 +229,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             self.w - self.p,
             self.lee_fpc_dict,
             self.lee_result_qubits,
+            self.mct_mode,
             uncomputeEq=True)
         self.circuit.barrier()
 
@@ -232,32 +250,36 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             self.circuit.ccx(self.fpc_eq_q, self.lee_eq_q, self.fpc_two_eq_q)
         self.circuit.barrier()
 
-    def _negate_for_inversion(self):
-        self.circuit.barrier()
-        if self.nwr_mode == self.NWR_BENES:
-            to_negate_registers = self.benes_flip_q
-        elif self.nwr_mode == self.NWR_FPC:
-            to_negate_registers = self.selectors_q
-        self.circuit.x(to_negate_registers)
-        self.circuit.barrier()
+    # def _negate_for_inversion(self):
+    #     self.circuit.barrier()
+    #     if self.nwr_mode == self.NWR_BENES:
+    #         to_negate_registers = self.benes_flip_q
+    #     elif self.nwr_mode == self.NWR_FPC:
+    #         to_negate_registers = self.selectors_q
+    #     self.circuit.x(to_negate_registers)
+    #     self.circuit.barrier()
 
     def _inversion_about_zero(self):
         self.circuit.barrier()
-        if self.nwr_mode == self.NWR_BENES:
-            control_q = self.benes_flip_q[1:]
-            multi_control_target_qubit = self.benes_flip_q[0]
-        elif self.nwr_mode == self.NWR_FPC:
-            control_q = self.selectors_q[1:]
-            multi_control_target_qubit = self.selectors_q[0]
+        self.circuit.x(self.inversion_about_zero_qubits)
+        # if self.nwr_mode == self.NWR_BENES:
+        #     control_q = self.benes_flip_q[1:]
+        #     multi_control_target_qubit = self.benes_flip_q[0]
+        # elif self.nwr_mode == self.NWR_FPC:
+        #     control_q = self.selectors_q[1:]
+        #     multi_control_target_qubit = self.selectors_q[0]
 
         # CZ = H CX H
-        self.circuit.h(multi_control_target_qubit)
+        self.circuit.h(self.inversion_about_zero_qubits[0])
         self.circuit.mct(
-            control_q,
-            multi_control_target_qubit,
+            self.inversion_about_zero_qubits[1:],
+            self.inversion_about_zero_qubits[0],
             self.mct_anc,
             mode=self.mct_mode)
-        self.circuit.h(multi_control_target_qubit)
+        self.circuit.h(self.inversion_about_zero_qubits[0])
+        # CZ END
+
+        self.circuit.x(self.inversion_about_zero_qubits)
         self.circuit.barrier()
 
     def build_circuit(self):
@@ -283,9 +305,9 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                 self._matrix2gates_i()
 
                 self._hamming_weight_i()
-                self._negate_for_inversion()
+                # self._negate_for_inversion()
                 self._inversion_about_zero()
-                self._negate_for_inversion()
+                # self._negate_for_inversion()
                 self._hamming_weight()
 
         elif self.nwr_mode == self.NWR_FPC:
@@ -301,9 +323,9 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                 self._syndrome2gates_i()
                 self._matrix2gates_i()
                 self.circuit.h(self.selectors_q)
-                self._negate_for_inversion()
+                # self._negate_for_inversion()
                 self._inversion_about_zero()
-                self._negate_for_inversion()
+                # self._negate_for_inversion()
                 self.circuit.h(self.selectors_q)
 
         if self.need_measures:
