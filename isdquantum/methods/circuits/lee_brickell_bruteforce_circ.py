@@ -128,13 +128,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                 max(qubits_involved_in_multicontrols) - 2, 'mctAnc')
             self.circuit.add_register(self.mct_anc)
         elif self.mct_mode == self.MCT_NOANCILLA:
-            # no ancilla to add
             self.mct_anc = None
-            # pass
-        # We still need 1 ancilla for other parts of the circuit
-        # if self.mct_anc == None:
-        #     self.mct_anc = QuantumRegister(1, 'mctAnc')
-        #     self.circuit.add_register(self.mct_anc)
 
     def _hamming_weight(self):
         self.circuit.barrier()
@@ -186,7 +180,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         for i in range(self.v.shape[1]):
             qregs.conditionally_initialize_qureg_given_bitstring(
                 self.v[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
-                self.circuit, 'advanced')
+                self.circuit, self.mct_mode)
         self.circuit.barrier()
 
     def _matrix2gates_i(self):
@@ -194,7 +188,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         for i in reversed(range(self.v.shape[1])):
             qregs.conditionally_initialize_qureg_given_bitstring(
                 self.v[:, i].tolist(), self.sum_q, [self.selectors_q[i]], None,
-                self.circuit, 'advanced')
+                self.circuit, self.mct_mode)
         self.circuit.barrier()
 
     def _syndrome2gates(self):
@@ -236,38 +230,16 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
     def _oracle(self):
         self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
-            # controls_q = [qr for qr in self.sum_q[1:]] + [self.lee_eq_q[0]]
-            control_q = self.lee_eq_q[0]
-            to_invert_q = self.benes_flip_q
-            for i in to_invert_q:
-                self.circuit.cz(control_q, i)
+            self.circuit.z(self.lee_eq_q)
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.ccx(self.fpc_eq_q, self.lee_eq_q, self.fpc_two_eq_q)
-            control_q = self.fpc_two_eq_q
-            to_invert_q = self.selectors_q
-            for i in to_invert_q:
-                self.circuit.cz(control_q, i)
+            self.circuit.z(self.fpc_two_eq_q)
             self.circuit.ccx(self.fpc_eq_q, self.lee_eq_q, self.fpc_two_eq_q)
         self.circuit.barrier()
-
-    # def _negate_for_inversion(self):
-    #     self.circuit.barrier()
-    #     if self.nwr_mode == self.NWR_BENES:
-    #         to_negate_registers = self.benes_flip_q
-    #     elif self.nwr_mode == self.NWR_FPC:
-    #         to_negate_registers = self.selectors_q
-    #     self.circuit.x(to_negate_registers)
-    #     self.circuit.barrier()
 
     def _inversion_about_zero(self):
         self.circuit.barrier()
         self.circuit.x(self.inversion_about_zero_qubits)
-        # if self.nwr_mode == self.NWR_BENES:
-        #     control_q = self.benes_flip_q[1:]
-        #     multi_control_target_qubit = self.benes_flip_q[0]
-        # elif self.nwr_mode == self.NWR_FPC:
-        #     control_q = self.selectors_q[1:]
-        #     multi_control_target_qubit = self.selectors_q[0]
 
         # CZ = H CX H
         self.circuit.h(self.inversion_about_zero_qubits[0])
@@ -297,17 +269,17 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                 self._matrix2gates()
                 self._syndrome2gates()
                 self._lee_weight_check()
-                # TODO break put here for a test
-                # break
                 self._oracle()
                 self._lee_weight_check_i()
+                # # TODO break put here for a test
+                # break
                 self._syndrome2gates_i()
                 self._matrix2gates_i()
 
                 self._hamming_weight_i()
-                # self._negate_for_inversion()
+                # # TODO break put here for a test
+                # break
                 self._inversion_about_zero()
-                # self._negate_for_inversion()
                 self._hamming_weight()
 
         elif self.nwr_mode == self.NWR_FPC:
@@ -322,10 +294,9 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                 self._hamming_weight_i()
                 self._syndrome2gates_i()
                 self._matrix2gates_i()
+
                 self.circuit.h(self.selectors_q)
-                # self._negate_for_inversion()
                 self._inversion_about_zero()
-                # self._negate_for_inversion()
                 self.circuit.h(self.selectors_q)
 
         if self.need_measures:
@@ -334,7 +305,8 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             cr = ClassicalRegister(len(to_measure), 'cols')
             self.circuit.add_register(cr)
             self.circuit.measure(to_measure, cr)
-            # TODO just useful for tests
+            # TODO just useful for tests to see the status of the registers
+            # at the various stages
             # to_measure_2 = self.sum_q
             # cr2 = ClassicalRegister(len(to_measure_2))
             # self.circuit.add_register(cr2)
