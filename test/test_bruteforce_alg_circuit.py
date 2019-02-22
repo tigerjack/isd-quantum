@@ -41,7 +41,7 @@ class BruteforceAlgTest(CircuitTestCase):
             with self.subTest(s=s):
                 self.logger.info("Starting subtest w/ s {}".format(s))
                 bru = BruteforceAlg(h, s, w, True, 'advanced', 'benes')
-                qc, result, e, accuracy = bru.run('basicer', 'qasm_simulator')
+                qc, result, e, accuracy = bru.run('basicaer', 'qasm_simulator')
                 counts = result.get_counts()
                 self.logger.debug(counts)
                 self.assertGreater(accuracy, 2 / 3)
@@ -63,7 +63,7 @@ class BruteforceAlgTest(CircuitTestCase):
             with self.subTest(s=s):
                 self.logger.info("Starting subtest w/ s {}".format(s))
                 bru = BruteforceAlg(h, s, w, True, 'advanced', 'fpc')
-                qc, result, e, accuracy = bru.run('basicer', 'qasm_simulator')
+                qc, result, e, accuracy = bru.run('basicaer', 'qasm_simulator')
                 counts = result.get_counts()
                 self.logger.debug(counts)
                 self.assertGreater(accuracy, 2 / 3)
