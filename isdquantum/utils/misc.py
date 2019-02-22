@@ -1,5 +1,49 @@
 import logging
+import numpy as np
+from math import isclose
 logger = logging.getLogger(__name__)
+
+# TODO rename misc to qiskit_utils
+
+
+def from_statevector_to_prob_and_phase(statevector, qc):
+    results = {}
+    for i, v in enumerate(statevector):
+        prob = np.linalg.norm(v)**2
+        if isclose(prob, 0, abs_tol=1e-5):
+            continue
+        state = bin(i)[2:].zfill(qc.width())
+        phase = np.angle(v, deg=True)
+        phase_str = "{:3.4f}".format(phase)
+        prob_str = "{:.4f}".format(prob)
+        results[state] = {'phase': phase_str, 'prob': prob_str}
+    return results
+
+
+def from_statevector_to_prob_and_phase_detailed(statevector, qc):
+    results = {}
+    for i, v in enumerate(statevector):
+        qregs_states = {}
+        prob = np.linalg.norm(v)**2
+        if isclose(prob, 0, abs_tol=1e-5):
+            continue
+        state = bin(i)[2:].zfill(qc.width())
+        prev_l = 0
+        for qr in reversed(qc.qregs):
+            l = len(qr)
+            st = state[prev_l:prev_l + l]
+            qregs_states[qr.name] = st
+            prev_l += l
+
+        phase = np.angle(v, deg=True)
+        prob_str = "{:.4f}".format(prob)
+        phase_str = "{:3.4f}".format(phase)
+        results[state] = {
+            'phase': phase_str,
+            'prob': prob_str,
+            'detailed': qregs_states
+        }
+    return results
 
 
 def get_backend(provider_name, backend_name, n_qubits):
