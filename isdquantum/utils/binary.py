@@ -34,9 +34,24 @@ def get_bitstring_from_int(i, max_bits, littleEndian=False):
     return str if not littleEndian else str[::-1]
 
 
+def get_bitarray_from_int(i, max_bits, littleEndian=False):
+    return [int(x) for x in get_bitstring_from_int(i, max_bits, littleEndian)]
+
+
+# TODO now it works w/ both list and string, maybe change names
 def get_negated_bistring(a_str):
     return a_str.translate(str.maketrans('01', '10'))
+    # Map seems to be slower
+    # return list(map(lambda x: 1 if int(x) == 0 else (0 if int(x) == 1 else None), ss))
+
+
+def get_negated_bitarray(a_arr):
+    return [0 if int(x) == 1 else (1 if int(x) == 0 else None) for x in a_arr]
 
 
 def get_int_from_bitstring(a_str, littleEndian=False):
     return int(a_str if not littleEndian else a_str[::-1], 2)
+
+
+def get_int_from_bitarray(a_arr, littleEndian=False):
+    return get_int_from_bitstring(''.join(str(e) for e in a_arr))
