@@ -129,8 +129,15 @@ def get_circuit_for_qubits_weight_get_pattern(n):
 
 # Circuit to check if a given set of register (a_qs) has weight equal to weight_int
 # eq_q is set to 1 in this case
-def get_circuit_for_qubits_weight_check(circuit, a_qs, cin_q, cout_qs, eq_q,
-                                        anc_q, weight_int, patterns_dict):
+def get_circuit_for_qubits_weight_check(circuit,
+                                        a_qs,
+                                        cin_q,
+                                        cout_qs,
+                                        eq_q,
+                                        anc_q,
+                                        weight_int,
+                                        patterns_dict,
+                                        mode='advanced'):
     equal_str = binary.get_bitstring_from_int(weight_int,
                                               len(patterns_dict['results']))
     circuit.barrier()
@@ -141,7 +148,7 @@ def get_circuit_for_qubits_weight_check(circuit, a_qs, cin_q, cout_qs, eq_q,
         equal_str, result_qubits, circuit)
     circuit.barrier()
 
-    circuit.mct([qb for qb in result_qubits], eq_q[0], anc_q, mode='advanced')
+    circuit.mct([qb for qb in result_qubits], eq_q[0], anc_q, mode=mode)
     circuit.barrier()
     return result_qubits
 
@@ -155,15 +162,13 @@ def get_circuit_for_qubits_weight_check_i(circuit,
                                           weight_int,
                                           patterns_dict,
                                           result_qubits,
+                                          mode='advanced',
                                           uncomputeEq=True):
     equal_str = binary.get_bitstring_from_int(weight_int,
                                               len(patterns_dict['results']))
     circuit.barrier()
     if uncomputeEq:
-        circuit.mct([qb for qb in result_qubits],
-                    eq_q[0],
-                    anc_q,
-                    mode='advanced')
+        circuit.mct([qb for qb in result_qubits], eq_q[0], anc_q, mode=mode)
     circuit.barrier()
     _ = qregs.initialize_qureg_to_complement_of_bitstring(
         equal_str, result_qubits, circuit)
