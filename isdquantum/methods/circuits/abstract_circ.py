@@ -21,6 +21,8 @@ class ISDAbstractCircuit(ABC):
         self.mct_mode = mct_mode
         self.nwr_mode = nwr_mode
         # self.inversion_about_zero_qubits: list
+        _logger.info("measures: {}, mct_mode: {}, nwr_mode: {}".format(
+            need_measures, mct_mode, nwr_mode))
 
     def build_circuit(self):
         rounds = pi / (4 * asin(1 / sqrt(self.n_func_domain))) - 1 / 2
@@ -91,7 +93,7 @@ class ISDAbstractCircuit(ABC):
         self.circuit.mct(
             self.inversion_about_zero_qubits[1:],
             self.inversion_about_zero_qubits[0],
-            self.mct_anc,
+            self.ancillas_list,
             mode=self.mct_mode)
         self.circuit.h(self.inversion_about_zero_qubits[0])
         # CZ END
