@@ -27,16 +27,12 @@ class LeeBrickellAlgTest(CircuitTestCase):
         other_logger.setLevel(cls.logger.level)
         other_logger.handlers = cls.logger.handlers
 
-    @parameterized.expand([
-        ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
-        ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
-    ])
-    def test_algorithm_benes(self, name, n, k, d, w, p):
+    def common(self, name, n, k, d, w, p, mct_mode, nwr_mode):
         h, _, syndromes, errors, w, _ = rch.get_isd_systematic_parameters(
             n, k, d, w)
         self.logger.info(
-            "Launching TEST w/ n = {0}, k = {1}, d = {2}, w = {3}, p = {4}".
-            format(n, k, d, w, p))
+            "Launching TEST w/ n = {0}, k = {1}, d = {2}, w = {3}, p = {4}, mct_mode = {5}, nwr_mode = {6}"
+            .format(n, k, d, w, p, mct_mode, nwr_mode))
         self.logger.debug("h = \n{0}".format(h))
         for i, s in enumerate(syndromes):
             with self.subTest(s=s):
@@ -53,19 +49,26 @@ class LeeBrickellAlgTest(CircuitTestCase):
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
     ])
-    def test_algorithm_fpc(self, name, n, k, d, w, p):
-        h, _, syndromes, errors, w, _ = rch.get_isd_systematic_parameters(
-            n, k, d, w)
-        self.logger.info(
-            "Launching TEST w/ n = {0}, k = {1}, d = {2}, w = {3}, p = {4}".
-            format(n, k, d, w, p))
-        self.logger.debug("h = \n{0}".format(h))
-        for i, s in enumerate(syndromes):
-            with self.subTest(s=s):
-                self.logger.info("Starting subtest w/ s {}".format(s))
-                lee = LeeBrickellMixedAlg(h, s, w, p, True, 'advanced', 'fpc')
-                qc, result, e, accuracy = lee.run('aer', 'qasm_simulator')
-                counts = result.get_counts()
-                self.logger.debug(counts)
-                self.assertGreater(accuracy, 2 / 3)
-                np.testing.assert_array_equal(e, errors[i])
+    def test_lee_alg_basic_benes(self, name, n, k, d, w, p):
+        self.common(name, n, k, d, w, p, 'basic', 'benes')
+
+    @parameterized.expand([
+        ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
+    ])
+    def test_lee_alg_basic_fpc(self, name, n, k, d, w, p):
+        self.common(name, n, k, d, w, p, 'basic', 'fpc')
+
+    @parameterized.expand([
+        ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
+    ])
+    def test_lee_alg_advanced_benes(self, name, n, k, d, w, p):
+        self.common(name, n, k, d, w, p, 'advanced', 'benes')
+
+    @parameterized.expand([
+        ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
+    ])
+    def test_lee_alg_advanced_fpc(self, name, n, k, d, w, p):
+        self.common(name, n, k, d, w, p, 'advanced', 'fpc')
