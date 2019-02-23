@@ -25,7 +25,7 @@ class BruteforceAlg(ISDAbstractAlg):
         # process_compiled_circuit(args, qc, backend)
         return qc, backend
 
-    def run_circuit_on_backend(self, qc, backend, shots):
+    def run_circuit_on_backend(self, qc, backend, shots=1024):
         result = misc.run(qc, backend, shots)
         counts = result.get_counts(qc)
         max_val = max(counts.values())

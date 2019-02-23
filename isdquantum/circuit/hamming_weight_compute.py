@@ -129,6 +129,7 @@ def get_circuit_for_qubits_weight_get_pattern(n):
 
 # Circuit to check if a given set of register (a_qs) has weight equal to weight_int
 # eq_q is set to 1 in this case
+# anc_q can also be the same cin_q
 def get_circuit_for_qubits_weight_check(circuit,
                                         a_qs,
                                         cin_q,
