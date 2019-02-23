@@ -6,6 +6,7 @@ from isdquantum.circuit import hamming_weight_compute as hwc
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.aqua import utils
+from math import factorial
 
 _logger = logging.getLogger(__name__)
 
@@ -39,7 +40,6 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
         self.circuit = QuantumCircuit(
             name="bruteforce_{0}_{1}_{2}_{3}_{4}".format(
                 self.n, self.r, self.w, self.mct_mode, self.nwr_mode))
-        # TODO
         self.ancillas_list = []
         qubits_involved_in_multicontrols = []
         if self.nwr_mode == self.NWR_BENES:
@@ -52,7 +52,11 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
                                                'select')
             self.benes_flip_q = QuantumRegister(self.benes_dict['n_flips'],
                                                 "flip")
-            self.n_func_domain = len(self.benes_flip_q) + self.w
+            # TODO check
+            # self.n_func_domain = len(self.benes_flip_q) + self.w
+            # The input domain is nCr(n_lines, w)
+            self.n_func_domain = factorial(len(self.selectors_q)) / factorial(
+                self.w) / factorial(len(self.selectors_q) - self.w)
             self.circuit.add_register(self.selectors_q)
             self.circuit.add_register(self.benes_flip_q)
             self.inversion_about_zero_qubits = self.benes_flip_q

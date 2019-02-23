@@ -62,7 +62,9 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             self.benes_flip_q = QuantumRegister(self.benes_dict['n_flips'],
                                                 "bflip")
             # TODO check
-            self.n_func_domain = len(self.benes_flip_q) + self.p
+            # The input domain is nCr(n_lines, p)
+            self.n_func_domain = factorial(len(self.selectors_q)) / factorial(
+                self.p) / factorial(len(self.selectors_q) - self.p)
             self.circuit.add_register(self.selectors_q)
             self.circuit.add_register(self.benes_flip_q)
             self.inversion_about_zero_qubits = self.benes_flip_q
