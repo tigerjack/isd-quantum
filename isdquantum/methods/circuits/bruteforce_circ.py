@@ -54,9 +54,10 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
                                                 "flip")
             # TODO check
             # self.n_func_domain = len(self.benes_flip_q) + self.w
+            self.n_func_domain = len(self.benes_flip_q)
             # The input domain is nCr(n_lines, w)
-            self.n_func_domain = factorial(len(self.selectors_q)) / factorial(
-                self.w) / factorial(len(self.selectors_q) - self.w)
+            # self.n_func_domain = factorial(len(self.selectors_q)) / factorial(
+            #     self.w) / factorial(len(self.selectors_q) - self.w)
             self.circuit.add_register(self.selectors_q)
             self.circuit.add_register(self.benes_flip_q)
             self.inversion_about_zero_qubits = self.benes_flip_q
