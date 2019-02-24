@@ -195,9 +195,9 @@ def ex_fixed(n, mode):
     wanted_sum = w - p
     print("v =\n{}".format(v))
     print("s_sig = {}".format(s_sig))
-    print("expected error positions {}".format(exp_comb))
     lb = LeeBrickellCircuit(v, s_sig, w, p, True, 'basic', mode)
     qc = lb.build_circuit()
+    print("Qubits needed: {}".format(qc.width()))
     backend_name = 'qasm_simulator'
     # backend_name = 'statevector_simulator'
     from qiskit import BasicAer, execute
@@ -218,11 +218,10 @@ def ex_fixed(n, mode):
 
     # BUILD ERROR VECTOR
     max_val = max(counts.values())
-    print("max val", max_val)
+    # print("max val", max_val)
     accuracy = max_val / shots
-    print("Accuracy ", accuracy)
     max_val_status = max(counts, key=lambda key: counts[key])
-    print("max val status ", max_val_status)
+    print("{:.3f} accuracy for status {}".format(accuracy, max_val_status))
     error_positions = [
         pos for pos, char in enumerate(max_val_status[::-1]) if char == '1'
     ]
@@ -232,12 +231,12 @@ def ex_fixed(n, mode):
     # from isdquantum.utils import misc
     # misc.draw_circuit(qc, 'data/img/exp/lee_fixed_{}_'.format(n))
     # return
-    print(np.array_equal(error_positions, [exp_comb]))
+    print("TRUE ? ", np.array_equal(error_positions, exp_comb))
     v_extr = v[:, error_positions]
     sum_to_s = (v_extr.sum(axis=1) + s_sig) % 2
     sum_to_s_w = np.sum(sum_to_s)
     if sum_to_s_w != w - p:
-        print("Error")  # We can't be here
+        print("ERRORRRRR")  # We can't be here
         return
     else:
         print("Maybe found")  # Sure in this fixed example
@@ -246,7 +245,7 @@ def ex_fixed(n, mode):
         e_hat[j] = 1
     print("e_hat {} real".format(e_hat))
     print("e_hat {} expected".format(exp_e_hat))
-    print(np.array_equal(e_hat, exp_e_hat))
+    print("TRUE ? ", np.array_equal(e_hat, exp_e_hat))
     e_hat_w = np.sum(e_hat)
     print("Weight of e_hat is {}".format(e_hat_w))
     if e_hat_w == w:
@@ -257,7 +256,7 @@ def ex_fixed(n, mode):
     e = np.mod(np.dot(e_hat, perm.T), 2)
     print("Error {} real".format(e))
     print("Error {} expected".format(exp_e))
-    print(np.array_equal(e, exp_e))
+    print("TRUE ? ", np.array_equal(e, exp_e))
 
 
 def ex_w_classic():
@@ -281,7 +280,7 @@ def ex_w_classic():
 
 
 def main():
-    # ex_fixed(3, 'fpc')
+    # ex_fixed(1, 'fpc')
     for m in ('benes', 'fpc'):
         for j in range(1, 6):
             ex_fixed(j, m)
