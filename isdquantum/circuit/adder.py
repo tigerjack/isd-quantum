@@ -40,8 +40,8 @@ def adder_circuit_i(circuit, cin, a, b, cout):
 
 def _check_adder_inputs(q_a, q_b, q_cin, q_cout):
     assert len(q_a) == len(q_b), "The two adders must have the same size"
-    assert len(q_cin) == 1, "The carry-in register must have size 1"
-    assert len(q_cout) == 1, "The carry-out register must have size 1"
+    assert len(q_cin) >= 1, "The carry-in register must have size least 1"
+    assert len(q_cout) >= 1, "The carry-out register must have size at least 1"
 
 
 def _majority(circuit, a, b, c):
