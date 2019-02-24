@@ -70,13 +70,11 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
             fpc_cin_q = QuantumRegister(1, 'cin')
             self.ancillas_list.append(fpc_cin_q[0])
             self.fpc_eq_q = QuantumRegister(1, 'eq')
-            # self.fpc_two_eq_q = QuantumRegister(1, 'f2eq')
             self.n_func_domain = 2**len(self.selectors_q)
             self.circuit.add_register(fpc_cin_q)
             self.circuit.add_register(self.selectors_q)
             self.circuit.add_register(self.fpc_cout_q)
             self.circuit.add_register(self.fpc_eq_q)
-            # self.circuit.add_register(self.fpc_two_eq_q)
             self.inversion_about_zero_qubits = self.selectors_q
             qubits_involved_in_multicontrols.append(
                 len(self.fpc_dict['results']))
@@ -108,8 +106,8 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
                 self.ancillas_list.extend(mct_anc)
         elif self.mct_mode == self.MCT_NOANCILLA:
             # no ancilla to add
-            pass
             # self.mct_anc = None
+            pass
 
         self.to_measure = self.selectors_q
 

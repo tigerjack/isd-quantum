@@ -21,7 +21,6 @@ class ISDAbstractCircuit(ABC):
         self.need_measures = need_measures
         self.mct_mode = mct_mode
         self.nwr_mode = nwr_mode
-        # self.inversion_about_zero_qubits: list
         _logger.info("measures: {}, mct_mode: {}, nwr_mode: {}".format(
             need_measures, mct_mode, nwr_mode))
 
@@ -41,7 +40,7 @@ class ISDAbstractCircuit(ABC):
             cr = ClassicalRegister(len(self.to_measure), 'cols')
             self.circuit.add_register(cr)
             self.circuit.measure(self.to_measure, cr)
-            # TODO just useful for tests to see the status of the registers
+            # TEST_ONLY just useful for tests to see the status of the registers
             # at the various stages
             # to_measure_2 = self.sum_q
             # cr2 = ClassicalRegister(len(to_measure_2))

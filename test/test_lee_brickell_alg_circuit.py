@@ -1,11 +1,8 @@
-import logging
 from parameterized import parameterized
 from test.common_circuit import CircuitTestCase
 from isdquantum.methods.algorithms.lee_brickell_mixed_alg import LeeBrickellMixedAlg
-from isdclassic.methods.lee_brickell import LeeBrickell
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 import numpy as np
-import sys
 
 
 # The idea is to directly use the lee brickell mixed algorithm
@@ -17,6 +14,7 @@ class LeeBrickellAlgTest(CircuitTestCase):
     @classmethod
     def setUpClass(cls):
         CircuitTestCase.setUpClass()
+        # import logging
         # other_logger = logging.getLogger('isdclassic')
         # other_logger.setLevel(cls.logger.level)
         # other_logger.handlers = cls.logger.handlers
@@ -45,6 +43,8 @@ class LeeBrickellAlgTest(CircuitTestCase):
                         alg_result.rounds))
                     counts = alg_result.qiskit_result.get_counts()
                     self.logger.debug(counts)
+                    self.logger.debug("accuracy={}".format(
+                        alg_result.accuracy))
                     self.assertGreater(alg_result.accuracy, 2 / 3)
                     np.testing.assert_array_equal(alg_result.error, errors[i])
                 except Exception:

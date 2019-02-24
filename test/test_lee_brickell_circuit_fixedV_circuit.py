@@ -1,11 +1,10 @@
-import logging
-from parameterized import parameterized
 from test.common_circuit import CircuitTestCase
 from test.common_circuit import BasicTestCase
 from isdquantum.methods.circuits.lee_brickell_bruteforce_circ import LeeBrickellCircuit
-from isdclassic.methods.lee_brickell import LeeBrickell
+from isdclassic.methods.lee_brickell import LeeBrickell as LeeBrickellClassic
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 import numpy as np
+from parameterized import parameterized
 
 
 # The idea is to first run the classical computation and
@@ -18,6 +17,7 @@ class LeeBrickellCircuitTest(CircuitTestCase):
     @classmethod
     def setUpClass(cls):
         CircuitTestCase.setUpClass()
+        # import logging
         # other_logger = logging.getLogger('isdclassic')
         # other_logger.setLevel(cls.logger.level)
         # other_logger.handlers = cls.logger.handlers
@@ -36,7 +36,7 @@ class LeeBrickellCircuitTest(CircuitTestCase):
         for i, s in enumerate(syndromes):
             with self.subTest(s=s):
                 self.logger.info("Launching SUBTEST w/ s = {0}".format(s))
-                lee = LeeBrickell(h, s, w, p)
+                lee = LeeBrickellClassic(h, s, w, p)
                 exp_e = lee.run()
                 self.logger.debug(
                     "For s = {0}, w = {1}, p = {2} h = \n{3}\nerror is {4}".

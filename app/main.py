@@ -32,7 +32,7 @@ def _usage():
         '--nwr_mode',
         choices=['benes', 'fpc'],
         default='benes',
-        #TODO
+        #TODO add useful help message for nwr mode
         help='Mode for the nwr')
     parser.add_argument(
         '--real',

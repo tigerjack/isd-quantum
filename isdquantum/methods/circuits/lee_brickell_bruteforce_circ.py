@@ -76,17 +76,11 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
                                                'select')
             self.fpc_cout_q = QuantumRegister(self.fpc_dict['n_couts'],
                                               'fcout')
-            # cin already provided by lee_cin_q, unnecessary to have both
-            # self.fpc_cin_q = QuantumRegister(1, 'fcin')
             self.fpc_eq_q = QuantumRegister(1, 'feq')
-            # two_eq_q can be spared
-            # self.fpc_two_eq_q = QuantumRegister(1, 'f2eq')
             self.n_func_domain = 2**len(self.selectors_q)
-            # self.circuit.add_register(self.fpc_cin_q)
             self.circuit.add_register(self.selectors_q)
             self.circuit.add_register(self.fpc_cout_q)
             self.circuit.add_register(self.fpc_eq_q)
-            # self.circuit.add_register(self.fpc_two_eq_q)
             self.inversion_about_zero_qubits = self.selectors_q
             qubits_involved_in_multicontrols.append(
                 len(self.fpc_dict['results']))
@@ -137,7 +131,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.to_measure = self.selectors_q
 
     def _hamming_weight_selectors_check(self):
-        _logger.debug("hmsc")
+        _logger.debug("Here")
         self.circuit.barrier()
         self.fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check(
             self.circuit, self.selectors_q, self.ancillas_list,
@@ -149,11 +143,11 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
 
     def _hamming_weight_selectors_check_i(self):
-        _logger.debug("hmsci")
+        _logger.debug("Here")
         _logger.debug(
             "Result qubits for Hamming Weight inverse of selectors {}".format(
                 self.fpc_result_qubits))
-        # TODO uncomputeEq should be True, here it's just used for test
+        # TEST_ONLY uncomputeEq should be True, here it's just used for test
         self.fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check_i(
             self.circuit,
             self.selectors_q,
@@ -168,7 +162,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             uncomputeEq=True)
 
     def _matrix2gates(self):
-        _logger.debug("m2g")
+        _logger.debug("Here")
         self.circuit.barrier()
         for i in range(self.v.shape[1]):
             qregs.conditionally_initialize_qureg_given_bitstring(
@@ -177,7 +171,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
 
     def _matrix2gates_i(self):
-        _logger.debug("m2gi")
+        _logger.debug("Here")
         self.circuit.barrier()
         for i in reversed(range(self.v.shape[1])):
             qregs.conditionally_initialize_qureg_given_bitstring(
@@ -186,18 +180,18 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
 
     def _syndrome2gates(self):
-        _logger.debug("Syndrome 2 gates")
+        _logger.debug("Here")
         self.circuit.barrier()
         qregs.initialize_qureg_given_bitstring(self.syndrome.tolist(),
                                                self.sum_q, self.circuit)
         self.circuit.barrier()
 
     def _syndrome2gates_i(self):
-        _logger.debug("Syndrome 2 gates inverse")
+        _logger.debug("Here")
         return self._syndrome2gates()
 
     def _lee_weight_check(self):
-        _logger.debug("Weight check")
+        _logger.debug("Here")
         self.circuit.barrier()
         self.lee_result_qubits = hwc.get_circuit_for_qubits_weight_check(
             self.circuit, self.sum_q, self.ancillas_list, self.lee_cout_q,
@@ -208,9 +202,9 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
 
     def _lee_weight_check_i(self):
-        _logger.debug("Weight check inverse")
+        _logger.debug("Here")
         self.circuit.barrier()
-        # TODO uncomputeEq should be True, here it's just used for test
+        # TEST_ONLY uncomputeEq should be True, here it's just used for test
         hwc.get_circuit_for_qubits_weight_check_i(
             self.circuit,
             self.sum_q,
@@ -226,21 +220,20 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
 
     def _flip_correct_state(self):
-        _logger.debug("Flip correct state")
+        _logger.debug("Here")
         self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             self.circuit.z(self.lee_eq_q)
         elif self.nwr_mode == self.NWR_FPC:
-            # self.circuit.ccx(self.fpc_eq_q, self.lee_eq_q, self.fpc_two_eq_q)
-            # self.circuit.z(self.fpc_eq_q, self.lee_eq_q)
-            # self.circuit.ccx(self.fpc_eq_q, self.lee_eq_q, self.fpc_two_eq_q)
-            # Unneeded two_eq_q, a Z gate won't do anything to state 0, so we may
-            # just use a CZ
+            # The idea here is that, instead of having another qubits which is set
+            # iff both fpc_eq and lee_eq are set and then do a Z gate on this
+            # additional qubit, we can just do a CZ gate b/w fpc_eq and lee_eq
+            # bcz a Z gate won't do anything to state 0
             self.circuit.cz(self.fpc_eq_q, self.lee_eq_q)
         self.circuit.barrier()
 
     def prepare_input(self):
-        _logger.debug("Input prepare")
+        _logger.debug("Here")
         self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             self.circuit.h(self.benes_flip_q)
@@ -252,7 +245,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
 
     def prepare_input_i(self):
-        _logger.debug("Input prepare inverse")
+        _logger.debug("Here")
         self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             hwg.generate_qubits_with_given_weight_benes_i(
@@ -264,7 +257,7 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         self.circuit.barrier()
 
     def oracle(self):
-        _logger.debug("Lee oracle")
+        _logger.debug("Here")
         if self.nwr_mode == self.NWR_BENES:
             self._matrix2gates()
             self._syndrome2gates()

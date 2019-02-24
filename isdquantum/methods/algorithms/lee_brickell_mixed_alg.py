@@ -26,7 +26,6 @@ class LeeBrickellMixedAlg(ISDAbstractAlg):
             # Extract k-most submatrix V from hr
             v = hr[:, 0:self.k]
             logger.debug("Extracted v is\n{}".format(v))
-            # TODO lee brickell bruteforce circuit should take only v as input
             # Quantum algorithm to check which of the (k choose p) combination of
             # p columns, added to the syndrome, has weight w - p
             # Q.A. will return the specific combination of column
