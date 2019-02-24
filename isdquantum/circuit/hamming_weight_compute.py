@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def get_circuit_for_qubits_weight(circuit, a_qs, cin_q, cout_qs,
                                   patterns_dict):
     assert len(a_qs) == patterns_dict['n_lines']
-    assert len(cin_q) == 1
+    assert len(cin_q) >= 1
     assert len(cout_qs) == patterns_dict['n_couts']
     for i in patterns_dict['adders_pattern']:
         cout_idx = int(i[-1][1:])
@@ -50,7 +50,7 @@ def get_circuit_for_qubits_weight_i(circuit, a_qs, cin_q, cout_qs,
     # patterns_dict = _fpc_pattern()
     # from qiskit import QuantumCircuit
     assert len(a_qs) == patterns_dict['n_lines']
-    assert len(cin_q) == 1
+    assert len(cin_q) >= 1
     assert len(cout_qs) == patterns_dict['n_couts']
     for i in patterns_dict['adders_pattern'][::-1]:
         cout_idx = int(i[-1][1:])
