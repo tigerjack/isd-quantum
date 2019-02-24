@@ -5,7 +5,7 @@ from isdquantum.utils import misc
 class CircuitTestCase(BasicTestCase):
     @staticmethod
     def draw_circuit(circuit, filename):
-        misc.draw_circuit(qc, "data/img/test/" + filename)
+        misc.draw_circuit(circuit, "data/img/test/" + filename)
 
     @staticmethod
     def execute_qasm(qc, shots=1024):
