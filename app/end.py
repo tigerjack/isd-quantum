@@ -10,10 +10,11 @@ def go():
     logger.info("H was\n{0}".format(ses.h))
     logger.info("Syndrome was\n{0}".format(ses.syndrome))
     logger.info("With {} accuracy error is \n{}".format(
-        ses.accuracy, ses.error))
+        ses.alg_result.accuracy, ses.alg_result.error))
     if ses.args.export_qasm_file is not None:
-        misc.export_circuit_to_qasm(ses.qc, ses.args.export_qasm_file)
+        misc.export_circuit_to_qasm(ses.alg_result.qc,
+                                    ses.args.export_qasm_file)
     if ses.args.draw_circuit:
-        misc.draw_circuit(ses.qc, ses.args.img_dir)
+        misc.draw_circuit(ses.alg_result.qc, ses.args.img_dir)
     if ses.args.draw_dag:
-        misc.draw_dag(ses.qc, ses.args.img_dir)
+        misc.draw_dag(ses.alg_result.qc, ses.args.img_dir)

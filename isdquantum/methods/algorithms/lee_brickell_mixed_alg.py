@@ -3,6 +3,7 @@ from isdclassic.methods.common import ISDWithoutLists
 from isdquantum.methods.circuits.lee_brickell_bruteforce_circ import LeeBrickellCircuit
 from isdquantum.methods.algorithms.abstract_alg import ISDAbstractAlg
 from isdquantum.utils import misc
+from isdquantum.methods.algorithms.algorithm_result import AlgResult
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -29,11 +30,12 @@ class LeeBrickellMixedAlg(ISDAbstractAlg):
             # Quantum algorithm to check which of the (k choose p) combination of
             # p columns, added to the syndrome, has weight w - p
             # Q.A. will return the specific combination of column
-            isd_method = LeeBrickellCircuit(v, s_sig, self.w, self.p,
-                                            self.need_measures, self.mct_mode,
-                                            self.nwr_mode)
+            lee_circ = LeeBrickellCircuit(v, s_sig, self.w, self.p,
+                                          self.need_measures, self.mct_mode,
+                                          self.nwr_mode)
             logger.info("Classic end, Lee bricked quantum start")
-            qc = isd_method.build_circuit()
+            qc = lee_circ.build_circuit()
+            rounds = lee_circ.rounds
             n_qubits = qc.width()
             logger.info("Number of qubits needed = {0}".format(n_qubits))
             backend = misc.get_backend(provider_name, backend_name, n_qubits)
@@ -79,5 +81,6 @@ class LeeBrickellMixedAlg(ISDAbstractAlg):
                 exit_condition = True
                 logger.debug("Original syndrome was {}".format(self.syndrome))
         e = np.mod(np.dot(e_hat, perm.T), 2)
+        alg_result = AlgResult(qc, e, accuracy, rounds, result)
         logger.info("Error is {}".format(e))
-        return qc, result, e, accuracy
+        return alg_result

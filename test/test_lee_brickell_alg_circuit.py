@@ -20,30 +20,38 @@ class LeeBrickellAlgTest(CircuitTestCase):
         # other_logger = logging.getLogger('isdclassic')
         # other_logger.setLevel(cls.logger.level)
         # other_logger.handlers = cls.logger.handlers
-        other_logger = logging.getLogger('isdquantum.methods.algorithms')
-        other_logger.setLevel(cls.logger.level)
-        other_logger.handlers = cls.logger.handlers
-        other_logger = logging.getLogger('isdquantum.methods.circuits')
-        other_logger.setLevel(cls.logger.level)
-        other_logger.handlers = cls.logger.handlers
+        # other_logger = logging.getLogger('isdquantum.methods.algorithms')
+        # other_logger.setLevel(cls.logger.level)
+        # other_logger.handlers = cls.logger.handlers
+        # other_logger = logging.getLogger('isdquantum.methods.circuits')
+        # other_logger.setLevel(cls.logger.level)
+        # other_logger.handlers = cls.logger.handlers
 
     def common(self, name, n, k, d, w, p, mct_mode, nwr_mode):
         h, _, syndromes, errors, w, _ = rch.get_isd_systematic_parameters(
             n, k, d, w)
         self.logger.info(
-            "Launching TEST w/ n = {0}, k = {1}, d = {2}, w = {3}, p = {4}, mct_mode = {5}, nwr_mode = {6}"
-            .format(n, k, d, w, p, mct_mode, nwr_mode))
+            "Launching TEST {} w/ n={}, k={}, d={}, w={}, p={}, mct_mode={}, nwr_mode={}"
+            .format(name, n, k, d, w, p, mct_mode, nwr_mode))
         self.logger.debug("h = \n{0}".format(h))
         for i, s in enumerate(syndromes):
             with self.subTest(s=s):
-                self.logger.info("Starting subtest w/ s {}".format(s))
-                lee = LeeBrickellMixedAlg(h, s, w, p, True, 'advanced',
-                                          'benes')
-                qc, result, e, accuracy = lee.run('aer', 'qasm_simulator')
-                counts = result.get_counts()
-                self.logger.debug(counts)
-                self.assertGreater(accuracy, 2 / 3)
-                np.testing.assert_array_equal(e, errors[i])
+                try:
+                    self.logger.info("Starting SUBTEST w/ s {}".format(s))
+                    lee = LeeBrickellMixedAlg(h, s, w, p, True, 'advanced',
+                                              'benes')
+                    alg_result = lee.run('aer', 'qasm_simulator')
+                    counts = alg_result.qiskit_result.get_counts()
+                    self.logger.debug(counts)
+                    self.assertGreater(alg_result.accuracy, 2 / 3)
+                    np.testing.assert_array_equal(alg_result.error, errors[i])
+                except Exception:
+                    self.logger.error(
+                        "Failed TEST w/ n={}, k={}, d={}, w={}, p={}, syn={}, h=\n{}"
+                        .format(n, k, d, w, p, s, h))
+                    self.logger.error("accuracy={}, counts\n{}".format(
+                        alg_result.accuracy, counts))
+                    raise
 
     @parameterized.expand([
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),

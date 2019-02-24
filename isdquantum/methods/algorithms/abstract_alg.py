@@ -21,4 +21,5 @@ class ISDAbstractAlg(ABC):
 
     @abstractmethod
     def run(self, provider_name, backend_name, shots):
+        # Should return a result object
         pass

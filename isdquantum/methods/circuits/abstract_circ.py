@@ -5,6 +5,7 @@ from math import sqrt, pi, asin
 _logger = logging.getLogger(__name__)
 
 
+# Global: circuit, ancillas_list, inversion_qubits, n_func_domain, to_measure, rounds
 class ISDAbstractCircuit(ABC):
     NWR_BENES = 'benes'
     NWR_FPC = 'fpc'
@@ -26,9 +27,9 @@ class ISDAbstractCircuit(ABC):
 
     def build_circuit(self):
         rounds = pi / (4 * asin(1 / sqrt(self.n_func_domain))) - 1 / 2
-        rounds = max(round(rounds), 1)
+        self.rounds = max(round(rounds), 1)
         self.prepare_input()
-        for i in range(rounds):
+        for i in range(self.rounds):
             _logger.debug("ITERATION {0}".format(i))
             self.oracle()
             self.prepare_input_i()
