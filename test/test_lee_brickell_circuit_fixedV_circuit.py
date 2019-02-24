@@ -21,10 +21,10 @@ class LeeBrickellCircuitTest(CircuitTestCase):
         # other_logger = logging.getLogger('isdclassic')
         # other_logger.setLevel(cls.logger.level)
         # other_logger.handlers = cls.logger.handlers
-        other_logger = logging.getLogger(
-            'isdquantum.methods.circuits.lee_brickell_bruteforce_circ')
-        other_logger.setLevel(cls.logger.level)
-        other_logger.handlers = cls.logger.handlers
+        # other_logger = logging.getLogger(
+        #     'isdquantum.methods.circuits.lee_brickell_bruteforce_circ')
+        # other_logger.setLevel(cls.logger.level)
+        # other_logger.handlers = cls.logger.handlers
 
     def common(self, n, k, d, w, p, mct_mode, nwr_mode):
         h, _, syndromes, errors, w, _ = rch.get_isd_systematic_parameters(
@@ -65,6 +65,7 @@ class LeeBrickellCircuitTest(CircuitTestCase):
                 lb = LeeBrickellCircuit(v, s_sig, w, p, True, mct_mode,
                                         nwr_mode)
                 qc = lb.build_circuit()
+                self.logger.debug("Rounds required {}".format(lb.rounds))
                 result = self.execute_qasm(qc, shots=shots)
                 counts = result.get_counts()
                 self.logger.info(counts)

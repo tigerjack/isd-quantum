@@ -41,6 +41,8 @@ class LeeBrickellAlgTest(CircuitTestCase):
                     lee = LeeBrickellMixedAlg(h, s, w, p, True, 'advanced',
                                               'benes')
                     alg_result = lee.run('aer', 'qasm_simulator')
+                    self.logger.debug("Rounds required {}".format(
+                        alg_result.rounds))
                     counts = alg_result.qiskit_result.get_counts()
                     self.logger.debug(counts)
                     self.assertGreater(alg_result.accuracy, 2 / 3)
@@ -54,6 +56,7 @@ class LeeBrickellAlgTest(CircuitTestCase):
                     raise
 
     @parameterized.expand([
+        ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
     ])
@@ -61,6 +64,7 @@ class LeeBrickellAlgTest(CircuitTestCase):
         self.common(name, n, k, d, w, p, 'basic', 'benes')
 
     @parameterized.expand([
+        ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
     ])
@@ -68,6 +72,7 @@ class LeeBrickellAlgTest(CircuitTestCase):
         self.common(name, n, k, d, w, p, 'basic', 'fpc')
 
     @parameterized.expand([
+        ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
     ])
@@ -75,6 +80,7 @@ class LeeBrickellAlgTest(CircuitTestCase):
         self.common(name, n, k, d, w, p, 'advanced', 'benes')
 
     @parameterized.expand([
+        ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
     ])

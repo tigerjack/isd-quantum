@@ -38,7 +38,7 @@ class BruteforceAlgTest(CircuitTestCase):
                     self.logger.info("Starting SUBTEST w/ s {}".format(s))
                     bru = BruteforceAlg(h, s, w, True, mct_mode, nwr_mode)
                     alg_result = bru.run('aer', 'qasm_simulator')
-                    self.logger.info("Rounds needed {}".format(
+                    self.logger.debug("Rounds required {}".format(
                         alg_result.rounds))
                     counts = alg_result.qiskit_result.get_counts()
                     self.logger.debug(counts)
@@ -77,6 +77,7 @@ class BruteforceAlgTest(CircuitTestCase):
         self.common(name, n, k, d, w, 'advanced', 'fpc')
 
     @parameterized.expand([
+        ("n7_k4_d3_w1", 7, 4, 3, 1),
         ("n8_k4_d4_w1", 8, 4, 4, 1),
         ("n8_k4_d4_w2", 8, 4, 4, 2),
     ])
@@ -85,6 +86,7 @@ class BruteforceAlgTest(CircuitTestCase):
         self.common(name, n, k, d, w, 'basic', 'benes')
 
     @parameterized.expand([
+        ("n7_k4_d3_w1", 7, 4, 3, 1),
         ("n8_k4_d4_w1", 8, 4, 4, 1),
         ("n8_k4_d4_w2", 8, 4, 4, 2),
     ])
@@ -93,6 +95,7 @@ class BruteforceAlgTest(CircuitTestCase):
         self.common(name, n, k, d, w, 'basic', 'fpc')
 
     @parameterized.expand([
+        ("n7_k4_d3_w1", 7, 4, 3, 1),
         ("n8_k4_d4_w1", 8, 4, 4, 1),
         ("n8_k4_d4_w2", 8, 4, 4, 2),
     ])
@@ -101,6 +104,7 @@ class BruteforceAlgTest(CircuitTestCase):
         self.common(name, n, k, d, w, 'advanced', 'benes')
 
     @parameterized.expand([
+        ("n7_k4_d3_w1", 7, 4, 3, 1),
         ("n8_k4_d4_w1", 8, 4, 4, 1),
         ("n8_k4_d4_w2", 8, 4, 4, 2),
     ])

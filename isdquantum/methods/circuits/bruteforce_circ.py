@@ -82,8 +82,9 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
                 len(self.fpc_dict['results']))
 
         # We should implement a check on n if it's not a power of 2
-        if len(self.selectors_q) != self.n:
-            raise Exception("A.T.M. we can't have less registers")
+        # TODO test if it works
+        # if len(self.selectors_q) != self.n:
+        #     raise Exception("A.T.M. we can't have less registers")
 
         qubits_involved_in_multicontrols.append(
             len(self.inversion_about_zero_qubits[1:]))
