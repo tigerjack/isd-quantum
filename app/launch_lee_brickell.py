@@ -1,6 +1,5 @@
 import logging
 from isdquantum.methods.algorithms.lee_brickell_mixed_alg import LeeBrickellMixedAlg
-from isdquantum.utils import misc
 from app.session import Session
 from app import end
 logger = logging.getLogger(__name__)

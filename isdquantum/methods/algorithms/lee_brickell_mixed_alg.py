@@ -2,7 +2,7 @@ import logging
 from isdclassic.methods.common import ISDWithoutLists
 from isdquantum.methods.circuits.lee_brickell_bruteforce_circ import LeeBrickellCircuit
 from isdquantum.methods.algorithms.abstract_alg import ISDAbstractAlg
-from isdquantum.utils import misc
+from isdquantum.utils import qiskit_support
 from isdquantum.methods.algorithms.algorithm_result import AlgResult
 import numpy as np
 
@@ -37,10 +37,11 @@ class LeeBrickellMixedAlg(ISDAbstractAlg):
             rounds = lee_circ.rounds
             n_qubits = qc.width()
             logger.info("Number of qubits needed = {0}".format(n_qubits))
-            backend = misc.get_backend(provider_name, backend_name, n_qubits)
+            backend = qiskit_support.get_backend(provider_name, backend_name,
+                                                 n_qubits)
             logger.debug("After function, backend name is {0}".format(
                 backend.name()))
-            result = misc.run(qc, backend, shots=shots)
+            result = qiskit_support.run(qc, backend, shots=shots)
             counts = result.get_counts(qc)
             logger.debug("{0} counts: \n {1}".format(len(counts), counts))
             max_val = max(counts.values())

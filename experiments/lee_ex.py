@@ -1,6 +1,6 @@
 import numpy as np
 from isdquantum.methods.circuits.lee_brickell_bruteforce_circ import LeeBrickellCircuit
-from isdquantum.utils import misc
+from isdquantum.utils import qiskit_support
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 from isdclassic.methods.lee_brickell import LeeBrickell
 import itertools
@@ -207,7 +207,7 @@ def ex_fixed(n, mode):
         counts = result.get_counts()
         print("{} counts\n{}".format(len(counts), counts))
     else:  # statevector
-        statevector_results = misc.from_statevector_to_prob_and_phase_detailed(
+        statevector_results = qiskit_support.from_statevector_to_prob_and_phase_detailed(
             result.get_statevector(), qc)
         for k, v in statevector_results.items():
             print("{}".format(k))
@@ -228,8 +228,8 @@ def ex_fixed(n, mode):
     print("Error positions {} real".format(error_positions))
     print("Error positions {} expected".format(exp_comb))
     # print("Drawing")
-    # from isdquantum.utils import misc
-    # misc.draw_circuit(qc, 'data/img/exp/lee_fixed_{}_'.format(n))
+    # from isdquantum.utils import qiskit_support
+    # qiskit_support.draw_circuit(qc, 'data/img/exp/lee_fixed_{}_'.format(n))
     # return
     print("TRUE ? ", np.array_equal(error_positions, exp_comb))
     v_extr = v[:, error_positions]

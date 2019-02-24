@@ -3,8 +3,6 @@ import numpy as np
 from math import isclose
 logger = logging.getLogger(__name__)
 
-# TODO rename misc to qiskit_utils
-
 
 def from_statevector_to_prob_and_phase(statevector, qc):
     results = {}

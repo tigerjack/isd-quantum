@@ -1,5 +1,5 @@
 import logging
-from isdquantum.utils import misc
+from isdquantum.utils import qiskit_support
 from isdquantum.methods.circuits.bruteforce_circ import BruteforceISDCircuit
 from isdquantum.methods.algorithms.abstract_alg import ISDAbstractAlg
 from isdquantum.methods.algorithms.algorithm_result import AlgResult
@@ -19,13 +19,14 @@ class BruteforceAlg(ISDAbstractAlg):
         qc = bru_circ.build_circuit()
         n_qubits = qc.width()
         logger.info("Number of qubits needed = {0}".format(n_qubits))
-        backend = misc.get_backend(provider_name, backend_name, n_qubits)
+        backend = qiskit_support.get_backend(provider_name, backend_name,
+                                             n_qubits)
         logger.debug("After function, backend name is {0}".format(
             backend.name()))
         return qc, backend, bru_circ.rounds
 
     def run_circuit_on_backend(self, qc, backend, shots=1024):
-        result = misc.run(qc, backend, shots)
+        result = qiskit_support.run(qc, backend, shots)
         counts = result.get_counts(qc)
         max_val = max(counts.values())
         accuracy = max_val / shots
