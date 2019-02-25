@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 from math import isclose
+import itertools
 logger = logging.getLogger(__name__)
 
 
@@ -15,6 +16,7 @@ def from_statevector_to_prob_and_phase(statevector, qc):
         phase_str = "{:3.4f}".format(phase)
         prob_str = "{:.4f}".format(prob)
         results[state] = {'phase': phase_str, 'prob': prob_str}
+
     return results
 
 
@@ -42,6 +44,62 @@ def from_statevector_to_prob_and_phase_detailed(statevector, qc):
             'detailed': qregs_states
         }
     return results
+
+
+# Elaborate counts:
+# It returns a dict containing, for each creg, the state of its bits.
+# Dict is as following
+# 'creg_number': {[bit_number] = [number_on, number_of]}
+def from_global_counts_to_per_register_count(counts, *cregs):
+    overall_len = itertools.chain.from_iterable(cregs)
+    overall_dict = {}
+    for j, cr in enumerate(cregs):
+        cr_bits = len(cr)
+        bit_states = []
+        for i in range(cr_bits):
+            bit_states.insert(i, [0, 0])
+        overall_dict[j] = bit_states
+
+    for k, v in counts.items():
+        k_rev = k[::-1]
+        prev_idx = 0
+        for cr_idx, cr in enumerate(cregs):
+            creg_state = k_rev[prev_idx:prev_idx + len(cr)]
+            prev_idx += len(cr)
+            for char_idx, char in enumerate(creg_state):
+                if char == '0':
+                    overall_dict[cr_idx][char_idx][0] += v
+                else:
+                    overall_dict[cr_idx][char_idx][1] += v
+    print("overall dict", overall_dict)
+    return overall_dict
+
+
+def from_global_counts_to_per_register_prob(counts, *cregs):
+    overall_sum = sum(counts.values())
+    overall_dict = from_global_counts_to_per_register_count(counts, cregs)
+    res = {}
+    for k, v in overall_dict.items():
+        res[k] = list(
+            map(lambda x: [x[0] / overall_sum, x[1] / overall_sum], v))
+    print("res", res)
+    return res
+
+
+def get_top_percentile_from_counts(counts, q):
+    perc = np.percentile(list(counts.values()), q)
+    return perc, {k: v for k, v in counts.items() if v > perc}
+
+
+def get_high_prob_state_from_register_prob(res):
+    state = []
+    for i, qb in enumerate(res):
+        print(i)
+        if qb[1] > .8:
+            state.insert(i, 1)
+        else:
+            state.insert(i, 0)
+    return state
 
 
 def get_backend(provider_name, backend_name, n_qubits):
