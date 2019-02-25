@@ -33,6 +33,9 @@ class AdderTestCase(CircuitTestCase):
         self.assertTrue(self.clean)
 
     @parameterized.expand([
+        ("0+1", 0, 1),
+        ("1+0", 1, 0),
+        ("1+1", 1, 1),
         ("3+2", 3, 2),
         ("7+9", 7, 9),
         ("15+11", 15, 11),
@@ -70,6 +73,9 @@ class AdderTestCase(CircuitTestCase):
         self.assertIn(expected, counts)
 
     @parameterized.expand([
+        ("0+1", 0, 1),
+        ("1+0", 1, 0),
+        ("1+1", 1, 1),
         ("3+2", 3, 2),
         ("7+9", 7, 9),
         ("15+11", 15, 11),
