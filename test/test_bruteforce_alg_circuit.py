@@ -14,14 +14,15 @@ import unittest
 class BruteforceAlgTest(CircuitTestCase):
     @classmethod
     def setUpClass(cls):
-        CircuitTestCase.setUpClass()
-        # import logging
-        # other_logger = logging.getLogger('isdquantum.methods.algorithms')
-        # other_logger.setLevel(cls.logger.level)
-        # other_logger.handlers = cls.logger.handlers
-        # other_logger = logging.getLogger('isdquantum.methods.circuits')
-        # other_logger.setLevel(cls.logger.level)
-        # other_logger.handlers = cls.logger.handlers
+        super().setUpClass()
+        pass
+        import logging
+        other_logger = logging.getLogger('isdquantum.methods.algorithms')
+        other_logger.setLevel(cls.logger.level)
+        other_logger.handlers = cls.logger.handlers
+        other_logger = logging.getLogger('isdquantum.methods.circuits')
+        other_logger.setLevel(cls.logger.level)
+        other_logger.handlers = cls.logger.handlers
 
     def common(self, name, n, k, d, w, mct_mode, nwr_mode):
         h, _, syndromes, errors, w, _ = rch.get_isd_systematic_parameters(

@@ -9,7 +9,7 @@ from isdclassic.utils import rectangular_codes_hardcoded as rch
 class BenesNetworkTestCase(BasicTestCase):
     @classmethod
     def setUpClass(cls):
-        BasicTestCase.setUpClass()
+        super().setUpClass()
         perm_logger = logging.getLogger('isdquantum.circuit.hamming_weight')
         perm_logger.setLevel(cls.logger.level)
         perm_logger.handlers = cls.logger.handlers
