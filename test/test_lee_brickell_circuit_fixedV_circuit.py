@@ -1,10 +1,10 @@
-from test.common_circuit import CircuitTestCase
-from test.common_circuit import BasicTestCase
+from test.common_alg import AlgTestCase
 from isdquantum.methods.circuits.lee_brickell_bruteforce_circ import LeeBrickellCircuit
 from isdclassic.methods.lee_brickell import LeeBrickell as LeeBrickellClassic
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 import numpy as np
 from parameterized import parameterized
+import unittest
 
 
 # The idea is to first run the classical computation and
@@ -13,14 +13,14 @@ from parameterized import parameterized
 # just one time because it is sure that we can recover the error from this
 # specific V matrix (since the classical algorithm used it to solve the
 # problem)
-class LeeBrickellCircuitTest(CircuitTestCase):
+class LeeBrickellCircuitTest(AlgTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         import logging
-        other_logger = logging.getLogger('isdclassic')
-        other_logger.setLevel(cls.logger.level)
-        other_logger.handlers = cls.logger.handlers
+        # other_logger = logging.getLogger('isdclassic')
+        # other_logger.setLevel(cls.logger.level)
+        # other_logger.handlers = cls.logger.handlers
         other_logger = logging.getLogger(
             'isdquantum.methods.circuits.lee_brickell_bruteforce_circ')
         other_logger.setLevel(cls.logger.level)
@@ -100,25 +100,10 @@ class LeeBrickellCircuitTest(CircuitTestCase):
                         "accuracy={}, maxValStatus counts\n{}".format(
                             accuracy, max_val_status, counts))
                     self.logger.error("Error {} expected".format(exp_e))
+                    self.logger.error("DRAWING")
+                    self.draw_circuit(qc, "")
+                    self.logger.error("END DRAWING")
                     raise
-
-    @parameterized.expand([
-        ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
-        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
-        # No combination is possible
-        # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
-    ])
-    def test_fixed_v_basic_benes(self, name, n, k, d, w, p):
-        self.common(n, k, d, w, p, 'basic', 'benes')
-
-    @parameterized.expand([
-        ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
-        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
-        # No combination is possible
-        # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
-    ])
-    def test_fixed_v_advanced_benes(self, name, n, k, d, w, p):
-        self.common(n, k, d, w, p, 'advanced', 'benes')
 
     @parameterized.expand([
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
@@ -135,3 +120,23 @@ class LeeBrickellCircuitTest(CircuitTestCase):
     ])
     def test_fixed_v_advanced_fpc(self, name, n, k, d, w, p):
         self.common(n, k, d, w, p, 'advanced', 'fpc')
+
+    @parameterized.expand([
+        # ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        # No combination is possible
+        # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
+    ])
+    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
+    def test_fixed_v_basic_benes(self, name, n, k, d, w, p):
+        self.common(n, k, d, w, p, 'basic', 'benes')
+
+    @parameterized.expand([
+        # ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        # No combination is possible
+        # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
+    ])
+    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
+    def test_fixed_v_advanced_benes(self, name, n, k, d, w, p):
+        self.common(n, k, d, w, p, 'advanced', 'benes')

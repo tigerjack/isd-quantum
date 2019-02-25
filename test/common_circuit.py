@@ -3,6 +3,10 @@ from isdquantum.utils import qiskit_support
 
 
 class CircuitTestCase(BasicTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
     @staticmethod
     def draw_circuit(circuit, filename):
         qiskit_support.draw_circuit(circuit, "data/img/test/" + filename)

@@ -1,4 +1,4 @@
-from test.common_circuit import CircuitTestCase
+from test.common_alg import AlgTestCase
 from isdquantum.methods.algorithms.bruteforce_alg import BruteforceAlg
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 import numpy as np
@@ -11,7 +11,7 @@ import unittest
 # a RREF matrix which is not the one which can we use to solve the ISD problem.
 # So, the RREF matrix computation should be redone several times, and so is the
 # circuit building and launching
-class BruteforceAlgTest(CircuitTestCase):
+class BruteforceAlgTest(AlgTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -57,20 +57,8 @@ class BruteforceAlgTest(CircuitTestCase):
     @parameterized.expand([
         ("n4_k1_d4_w1", 4, 1, 4, 1),
     ])
-    def test_brute_basic_benes(self, name, n, k, d, w):
-        self.common(name, n, k, d, w, 'basic', 'benes')
-
-    @parameterized.expand([
-        ("n4_k1_d4_w1", 4, 1, 4, 1),
-    ])
     def test_brute_basic_fpc(self, name, n, k, d, w):
         self.common(name, n, k, d, w, 'basic', 'fpc')
-
-    @parameterized.expand([
-        ("n4_k1_d4_w1", 4, 1, 4, 1),
-    ])
-    def test_brute_advanced_benes(self, name, n, k, d, w):
-        self.common(name, n, k, d, w, 'advanced', 'benes')
 
     @parameterized.expand([
         ("n4_k1_d4_w1", 4, 1, 4, 1),
@@ -79,14 +67,18 @@ class BruteforceAlgTest(CircuitTestCase):
         self.common(name, n, k, d, w, 'advanced', 'fpc')
 
     @parameterized.expand([
-        ("n7_k4_d3_w1", 7, 4, 3, 1),
-        ("n8_k4_d4_w1", 8, 4, 4, 1),
-        ("n8_k4_d4_w2", 8, 4, 4, 2),
-        ("n8_k2_d5_w3", 8, 2, 5, 3),
+        ("n4_k1_d4_w1", 4, 1, 4, 1),
     ])
-    @unittest.skipIf(not CircuitTestCase.SLOW_TEST, "Skipped slow test")
-    def test_brute_basic_benes_slow(self, name, n, k, d, w):
+    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
+    def test_brute_basic_benes(self, name, n, k, d, w):
         self.common(name, n, k, d, w, 'basic', 'benes')
+
+    @parameterized.expand([
+        ("n4_k1_d4_w1", 4, 1, 4, 1),
+    ])
+    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
+    def test_brute_advanced_benes(self, name, n, k, d, w):
+        self.common(name, n, k, d, w, 'advanced', 'benes')
 
     @parameterized.expand([
         ("n7_k4_d3_w1", 7, 4, 3, 1),
@@ -94,7 +86,7 @@ class BruteforceAlgTest(CircuitTestCase):
         ("n8_k4_d4_w2", 8, 4, 4, 2),
         ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
-    @unittest.skipIf(not CircuitTestCase.SLOW_TEST, "Skipped slow test")
+    @unittest.skipIf(not AlgTestCase.SLOW_TEST, "Skipped slow test")
     def test_brute_basic_fpc_slow(self, name, n, k, d, w):
         self.common(name, n, k, d, w, 'basic', 'fpc')
 
@@ -104,9 +96,9 @@ class BruteforceAlgTest(CircuitTestCase):
         ("n8_k4_d4_w2", 8, 4, 4, 2),
         ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
-    @unittest.skipIf(not CircuitTestCase.SLOW_TEST, "Skipped slow test")
-    def test_brute_advanced_benes_slow(self, name, n, k, d, w):
-        self.common(name, n, k, d, w, 'advanced', 'benes')
+    @unittest.skipIf(not AlgTestCase.SLOW_TEST, "Skipped slow test")
+    def test_brute_advanced_fpc_slow(self, name, n, k, d, w):
+        self.common(name, n, k, d, w, 'advanced', 'fpc')
 
     @parameterized.expand([
         ("n7_k4_d3_w1", 7, 4, 3, 1),
@@ -114,6 +106,18 @@ class BruteforceAlgTest(CircuitTestCase):
         ("n8_k4_d4_w2", 8, 4, 4, 2),
         ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
-    @unittest.skipIf(not CircuitTestCase.SLOW_TEST, "Skipped slow test")
-    def test_brute_advanced_fpc_slow(self, name, n, k, d, w):
-        self.common(name, n, k, d, w, 'advanced', 'fpc')
+    @unittest.skipIf(not AlgTestCase.SLOW_TEST, "Skipped slow test")
+    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
+    def test_brute_basic_benes_slow(self, name, n, k, d, w):
+        self.common(name, n, k, d, w, 'basic', 'benes')
+
+    @parameterized.expand([
+        ("n7_k4_d3_w1", 7, 4, 3, 1),
+        ("n8_k4_d4_w1", 8, 4, 4, 1),
+        ("n8_k4_d4_w2", 8, 4, 4, 2),
+        ("n8_k2_d5_w3", 8, 2, 5, 3),
+    ])
+    @unittest.skipIf(not AlgTestCase.SLOW_TEST, "Skipped slow test")
+    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
+    def test_brute_advanced_benes_slow(self, name, n, k, d, w):
+        self.common(name, n, k, d, w, 'advanced', 'benes')
