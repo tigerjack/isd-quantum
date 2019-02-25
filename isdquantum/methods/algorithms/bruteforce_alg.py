@@ -11,11 +11,12 @@ class BruteforceAlg(ISDAbstractAlg):
     def __init__(self, h, syndrome, w, need_measures, mct_mode, nwr_mode):
         super().__init__(h, syndrome, w, need_measures, mct_mode, nwr_mode)
 
-    def prepare_circuit_for_backend(self, provider_name, backend_name):
+    def prepare_circuit_for_backend(self, provider_name, backend_name,
+                                    n_rounds):
 
         bru_circ = BruteforceISDCircuit(self.h, self.syndrome, self.w,
                                         self.need_measures, self.mct_mode,
-                                        self.nwr_mode)
+                                        self.nwr_mode, n_rounds)
         qc = bru_circ.build_circuit()
         n_qubits = qc.width()
         logger.info("Number of qubits needed = {0}".format(n_qubits))
@@ -43,11 +44,26 @@ class BruteforceAlg(ISDAbstractAlg):
         return alg_result
 
     def run(self, provider_name, backend_name, shots=8192):
+
+        if self.nwr_mode == BruteforceISDCircuit.NWR_BENES:
+            n_rounds = 1
+        else:
+            n_rounds = None
+
         qc, backend, rounds = self.prepare_circuit_for_backend(
-            provider_name, backend_name)
-        # result, error, accuracy = self.run_circuit_on_backend(
-        #     qc, backend, shots)
+            provider_name, backend_name, n_rounds)
 
         alg_result = self.run_circuit_on_backend(qc, backend, shots)
-        alg_result.rounds = rounds
+        if self.nwr_mode == BruteforceISDCircuit.NWR_BENES:
+            if alg_result.accuracy < 0.4:
+                n_rounds = n_rounds + 1
+                # Rerun the circuit w/ the maximum number of rounds computed
+                # by the n_func_domain
+                qc, backend, rounds = self.prepare_circuit_for_backend(
+                    provider_name, backend_name, n_rounds)
+                alg_result = self.run_circuit_on_backend(qc, backend, shots)
+            else:
+                alg_result.rounds = n_rounds
+        else:
+            alg_result.rounds = rounds
         return alg_result

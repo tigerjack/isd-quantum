@@ -195,7 +195,7 @@ def ex_fixed(n, mode):
     wanted_sum = w - p
     print("v =\n{}".format(v))
     print("s_sig = {}".format(s_sig))
-    lb = LeeBrickellCircuit(v, s_sig, w, p, True, 'basic', mode)
+    lb = LeeBrickellCircuit(v, s_sig, w, p, True, 'basic', mode, None)
     qc = lb.build_circuit()
     print("Qubits needed: {}".format(qc.width()))
     backend_name = 'qasm_simulator'

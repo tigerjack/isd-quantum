@@ -15,18 +15,23 @@ class ISDAbstractCircuit(ABC):
     MCT_NOANCILLA = 'noancilla'
     MCT_MODES = (MCT_ADVANCED, MCT_BASIC, MCT_NOANCILLA)
 
-    def __init__(self, need_measures, mct_mode, nwr_mode):
+    def __init__(self, need_measures, mct_mode, nwr_mode, n_rounds):
         assert mct_mode in self.MCT_MODES, "Invalid mct_mode selected"
         assert nwr_mode in self.NWR_MODES, "Invalid nwr_mode selected"
         self.need_measures = need_measures
         self.mct_mode = mct_mode
         self.nwr_mode = nwr_mode
+        self.n_rounds = n_rounds
         _logger.info("measures: {}, mct_mode: {}, nwr_mode: {}".format(
             need_measures, mct_mode, nwr_mode))
 
     def build_circuit(self):
-        rounds = pi / (4 * asin(1 / sqrt(self.n_func_domain))) - 1 / 2
-        self.rounds = max(round(rounds), 1)
+        n_rounds_computed = pi / (
+            4 * asin(1 / sqrt(self.n_func_domain))) - 1 / 2
+        if self.n_rounds is not None and self.n_rounds > 0:
+            self.rounds = self.n_rounds
+        else:
+            self.rounds = max(round(n_rounds_computed), 1)
         self.prepare_input()
         for i in range(self.rounds):
             _logger.debug("ITERATION {0}".format(i))

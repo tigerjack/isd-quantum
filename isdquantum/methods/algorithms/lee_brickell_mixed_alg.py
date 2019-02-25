@@ -31,7 +31,7 @@ class LeeBrickellMixedAlg(ISDAbstractAlg):
             # Q.A. will return the specific combination of column
             lee_circ = LeeBrickellCircuit(v, s_sig, self.w, self.p,
                                           self.need_measures, self.mct_mode,
-                                          self.nwr_mode)
+                                          self.nwr_mode, None)
             logger.info("Classic end, Lee bricked quantum start")
             qc = lee_circ.build_circuit()
             rounds = lee_circ.rounds
