@@ -40,8 +40,8 @@ class BasicTestCase(unittest.TestCase):
             # Set up the file handler.
             log_file_name = os.path.join(cls.dirName, 'logs',
                                          '{}.log'.format(cls.fileName))
-            log_fmt = ('%(asctime)s:{}.%(funcName)s:%(levelname)s:'
-                       ' %(message)s'.format(cls.__name__))
+            log_fmt = ('%(asctime)s:%(module)s.%(funcName)s:%(levelname)s:'
+                       ' %(message)s')
             formatter = logging.Formatter(log_fmt)
             handler = logging.FileHandler(log_file_name)
             handler.setFormatter(formatter)

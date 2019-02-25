@@ -33,22 +33,23 @@ class BruteforceAlgTest(CircuitTestCase):
         self.logger.debug("h = \n{0}".format(h))
         for i, s in enumerate(syndromes):
             with self.subTest(s=s):
+                self.logger.info("Starting SUBTEST w/ s {}".format(s))
+                bru = BruteforceAlg(h, s, w, True, mct_mode, nwr_mode)
+                alg_result = bru.run('aer', 'qasm_simulator')
+                self.logger.debug("Rounds required {}".format(
+                    alg_result.rounds))
+                counts = alg_result.qiskit_result.get_counts()
+                self.logger.debug(counts)
+                self.logger.debug("accuracy={}".format(alg_result.accuracy))
+                self.logger.debug("error={} real".format(alg_result.error))
                 try:
-                    self.logger.info("Starting SUBTEST w/ s {}".format(s))
-                    bru = BruteforceAlg(h, s, w, True, mct_mode, nwr_mode)
-                    alg_result = bru.run('aer', 'qasm_simulator')
-                    self.logger.debug("Rounds required {}".format(
-                        alg_result.rounds))
-                    counts = alg_result.qiskit_result.get_counts()
-                    self.logger.debug(counts)
-                    self.logger.debug("accuracy={}".format(
-                        alg_result.accuracy))
                     self.assertGreater(alg_result.accuracy, 2 / 3)
                     np.testing.assert_array_equal(alg_result.error, errors[i])
                 except Exception:
                     self.logger.error(
                         "Failed TEST w/ n={}, k={}, d={}, w={}, syn={}, h=\n{}"
                         .format(n, k, d, w, s, h))
+                    self.logger.error("error={} expected")
                     self.logger.error("accuracy={}, counts\n{}".format(
                         alg_result.accuracy, counts))
                     raise
@@ -81,6 +82,7 @@ class BruteforceAlgTest(CircuitTestCase):
         ("n7_k4_d3_w1", 7, 4, 3, 1),
         ("n8_k4_d4_w1", 8, 4, 4, 1),
         ("n8_k4_d4_w2", 8, 4, 4, 2),
+        ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
     @unittest.skipIf(not CircuitTestCase.SLOW_TEST, "Skipped slow test")
     def test_brute_basic_benes_slow(self, name, n, k, d, w):
@@ -90,6 +92,7 @@ class BruteforceAlgTest(CircuitTestCase):
         ("n7_k4_d3_w1", 7, 4, 3, 1),
         ("n8_k4_d4_w1", 8, 4, 4, 1),
         ("n8_k4_d4_w2", 8, 4, 4, 2),
+        ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
     @unittest.skipIf(not CircuitTestCase.SLOW_TEST, "Skipped slow test")
     def test_brute_basic_fpc_slow(self, name, n, k, d, w):
@@ -99,6 +102,7 @@ class BruteforceAlgTest(CircuitTestCase):
         ("n7_k4_d3_w1", 7, 4, 3, 1),
         ("n8_k4_d4_w1", 8, 4, 4, 1),
         ("n8_k4_d4_w2", 8, 4, 4, 2),
+        ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
     @unittest.skipIf(not CircuitTestCase.SLOW_TEST, "Skipped slow test")
     def test_brute_advanced_benes_slow(self, name, n, k, d, w):
@@ -108,6 +112,7 @@ class BruteforceAlgTest(CircuitTestCase):
         ("n7_k4_d3_w1", 7, 4, 3, 1),
         ("n8_k4_d4_w1", 8, 4, 4, 1),
         ("n8_k4_d4_w2", 8, 4, 4, 2),
+        ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
     @unittest.skipIf(not CircuitTestCase.SLOW_TEST, "Skipped slow test")
     def test_brute_advanced_fpc_slow(self, name, n, k, d, w):

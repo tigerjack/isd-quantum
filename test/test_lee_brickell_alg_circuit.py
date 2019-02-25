@@ -35,23 +35,24 @@ class LeeBrickellAlgTest(CircuitTestCase):
         self.logger.debug("h = \n{0}".format(h))
         for i, s in enumerate(syndromes):
             with self.subTest(s=s):
+                self.logger.info("Starting SUBTEST w/ s {}".format(s))
+                lee = LeeBrickellMixedAlg(h, s, w, p, True, 'advanced',
+                                          'benes')
+                alg_result = lee.run('aer', 'qasm_simulator')
+                counts = alg_result.qiskit_result.get_counts()
+                self.logger.debug("Rounds required {}".format(
+                    alg_result.rounds))
+                self.logger.debug(counts)
+                self.logger.debug("accuracy={}".format(alg_result.accuracy))
+                self.logger.info("Error {} real".format(alg_result.error))
                 try:
-                    self.logger.info("Starting SUBTEST w/ s {}".format(s))
-                    lee = LeeBrickellMixedAlg(h, s, w, p, True, 'advanced',
-                                              'benes')
-                    alg_result = lee.run('aer', 'qasm_simulator')
-                    self.logger.debug("Rounds required {}".format(
-                        alg_result.rounds))
-                    counts = alg_result.qiskit_result.get_counts()
-                    self.logger.debug(counts)
-                    self.logger.debug("accuracy={}".format(
-                        alg_result.accuracy))
                     self.assertGreater(alg_result.accuracy, 2 / 3)
                     np.testing.assert_array_equal(alg_result.error, errors[i])
                 except Exception:
                     self.logger.error(
                         "Failed TEST w/ n={}, k={}, d={}, w={}, p={}, syn={}, h=\n{}"
                         .format(n, k, d, w, p, s, h))
+                    self.logger.error("Error {} expected".format(erros[i]))
                     self.logger.error("accuracy={}, counts\n{}".format(
                         alg_result.accuracy, counts))
                     raise
@@ -60,6 +61,8 @@ class LeeBrickellAlgTest(CircuitTestCase):
         ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     def test_lee_alg_basic_benes(self, name, n, k, d, w, p):
         self.common(name, n, k, d, w, p, 'basic', 'benes')
@@ -68,6 +71,8 @@ class LeeBrickellAlgTest(CircuitTestCase):
         ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     def test_lee_alg_basic_fpc(self, name, n, k, d, w, p):
         self.common(name, n, k, d, w, p, 'basic', 'fpc')
@@ -76,6 +81,8 @@ class LeeBrickellAlgTest(CircuitTestCase):
         ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     def test_lee_alg_advanced_benes(self, name, n, k, d, w, p):
         self.common(name, n, k, d, w, p, 'advanced', 'benes')
@@ -84,6 +91,8 @@ class LeeBrickellAlgTest(CircuitTestCase):
         ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     def test_lee_alg_advanced_fpc(self, name, n, k, d, w, p):
         self.common(name, n, k, d, w, p, 'advanced', 'fpc')

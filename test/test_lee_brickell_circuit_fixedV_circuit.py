@@ -38,15 +38,8 @@ class LeeBrickellCircuitTest(CircuitTestCase):
                 self.logger.info("Launching SUBTEST w/ s = {0}".format(s))
                 lee = LeeBrickellClassic(h, s, w, p)
                 exp_e = lee.run()
-                self.logger.debug(
-                    "For s = {0}, w = {1}, p = {2} h = \n{3}\nerror is {4}".
-                    format(s, w, p, h, exp_e))
                 # Just a double check on the result of the classic algorithm
                 np.testing.assert_array_almost_equal(exp_e, errors[i])
-                self.logger.info(
-                    "LeeBrickell Classic ended, preparing quantum")
-                # for k, v in lee.result.items():
-                #     print("{} -> {}".format(k, v))
                 hr = lee.result['hr']
                 perm = lee.result['perm']
                 s_sig = lee.result['s_sig']
@@ -54,70 +47,91 @@ class LeeBrickellCircuitTest(CircuitTestCase):
                 v = lee.result['v']
                 exp_e_hat = lee.result['e_hat']
                 exp_indexes = lee.result['indexes']
-                # print(v)
-                # print(s_sig)
+                self.logger.debug("v is \n{}".format(v))
+                self.logger.debug("s_sig is {}".format(s_sig))
 
                 # QUANTUM
+                self.logger.info(
+                    "LeeBrickell Classic ended, preparing quantum")
                 wanted_sum = w - p
                 shots = 4098
-                # print("v =\n{}".format(v))
-                # print("s_sig = ".format(s_sig))
                 lb = LeeBrickellCircuit(v, s_sig, w, p, True, mct_mode,
-                                        nwr_mode)
+                                        nwr_mode, None)
                 qc = lb.build_circuit()
                 self.logger.debug("Rounds required {}".format(lb.rounds))
                 result = self.execute_qasm(qc, shots=shots)
                 counts = result.get_counts()
                 self.logger.info(counts)
-
-                # BUILD ERROR VECTOR
                 max_val = max(counts.values())
                 max_val_status = max(counts, key=lambda key: counts[key])
                 accuracy = max_val / shots
-                self.assertGreater(accuracy, 2 / 3)
-                error_positions = [
-                    pos for pos, char in enumerate(max_val_status[::-1])
-                    if char == '1'
-                ]
-                self.assertEqual(error_positions, list(exp_indexes))
-                # self.logger.debug("Error positions {}".format(error_positions))
-                # self.logger.debug("Expected error positions {}".format(indexes))
-                v_extr = v[:, error_positions]
-                sum_to_s = (v_extr.sum(axis=1) + s_sig) % 2
-                sum_to_s_w = np.sum(sum_to_s)
-                self.assertEqual(sum_to_s_w, wanted_sum)
-                e_hat = np.concatenate((np.zeros(k), sum_to_s))
-                for j in error_positions:
-                    e_hat[j] = 1
-                self.logger.debug(
-                    "e_hat after error position is {}".format(e_hat))
-                np.testing.assert_array_equal(e_hat, exp_e_hat)
-                # print("expected e_hat is {}".format(exp_e_hat))
-                e_hat_w = np.sum(e_hat)
-                self.assertEqual(e_hat_w, w)
-                e = np.mod(np.dot(e_hat, perm.T), 2)
-                np.testing.assert_array_equal(e, exp_e)
+
+                # BUILD ERROR VECTOR
+                try:
+                    self.assertGreater(accuracy, 0.4)
+                    error_positions = [
+                        pos for pos, char in enumerate(max_val_status[::-1])
+                        if char == '1'
+                    ]
+                    self.assertEqual(error_positions, list(exp_indexes))
+                    # self.logger.debug("Error positions {}".format(error_positions))
+                    # self.logger.debug("Expected error positions {}".format(indexes))
+                    v_extr = v[:, error_positions]
+                    sum_to_s = (v_extr.sum(axis=1) + s_sig) % 2
+                    sum_to_s_w = np.sum(sum_to_s)
+                    self.assertEqual(sum_to_s_w, wanted_sum)
+                    e_hat = np.concatenate((np.zeros(k), sum_to_s))
+                    for j in error_positions:
+                        e_hat[j] = 1
+                    self.logger.debug(
+                        "e_hat after error position is {}".format(e_hat))
+                    np.testing.assert_array_equal(e_hat, exp_e_hat)
+                    # print("expected e_hat is {}".format(exp_e_hat))
+                    e_hat_w = np.sum(e_hat)
+                    self.assertEqual(e_hat_w, w)
+                    e = np.mod(np.dot(e_hat, perm.T), 2)
+                    self.logger.info("Error {} real".format(e))
+                    np.testing.assert_array_equal(e, exp_e)
+                except Exception:
+                    self.logger.error(
+                        "Failed TEST w/ mct_mode={}, nwr_mode={}, n={}, k={}, d={}, w={}, p={} syn={}, v=\n{}"
+                        .format(mct_mode, nwr_mode, n, k, d, w, p, s_sig, v))
+                    self.logger.error(
+                        "accuracy={}, maxValStatus counts\n{}".format(
+                            accuracy, max_val_status, counts))
+                    self.logger.error("Error {} expected".format(exp_e))
+                    raise
 
     @parameterized.expand([
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        # No combination is possible
+        # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     def test_fixed_v_basic_benes(self, name, n, k, d, w, p):
         self.common(n, k, d, w, p, 'basic', 'benes')
 
     @parameterized.expand([
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        # No combination is possible
+        # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     def test_fixed_v_advanced_benes(self, name, n, k, d, w, p):
         self.common(n, k, d, w, p, 'advanced', 'benes')
 
     @parameterized.expand([
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     def test_fixed_v_basic_fpc(self, name, n, k, d, w, p):
         self.common(n, k, d, w, p, 'basic', 'fpc')
 
     @parameterized.expand([
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     def test_fixed_v_advanced_fpc(self, name, n, k, d, w, p):
         self.common(n, k, d, w, p, 'advanced', 'fpc')
