@@ -4,6 +4,16 @@ from math import ceil, log
 logger = logging.getLogger(__name__)
 
 
+def generate_bits_from_flip_states(benes_pattern_dict, flip_states):
+    arr = [0] * benes_pattern_dict['n_lines']
+    for i in range(benes_pattern_dict['to_negate_range']):
+        arr[i] = 1
+    for i in benes_pattern_dict['swaps_pattern']:
+        if (flip_states[i[0]][1] > 0.55):
+            arr[i[1]], arr[i[2]] = arr[i[2]], arr[i[1]]
+    return arr
+
+
 def generate_qubits_with_given_weight_benes(circuit, a_qs, flip_qs,
                                             benes_pattern_dict):
     assert len(a_qs) == benes_pattern_dict['n_lines']
