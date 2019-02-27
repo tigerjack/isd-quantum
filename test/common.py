@@ -3,6 +3,7 @@ import logging
 import os
 import inspect
 import time
+from datetime import datetime
 
 
 class BasicTestCase(unittest.TestCase):
@@ -38,8 +39,9 @@ class BasicTestCase(unittest.TestCase):
             # cls.logger.setLevel(logging_level)
 
             # Set up the file handler.
+            now = datetime.now().strftime("%Y%m%d_%H%M%S")
             log_file_name = os.path.join(cls.dirName, 'logs',
-                                         '{}.log'.format(cls.fileName))
+                                         '{}_{}.log'.format(cls.fileName, now))
             log_fmt = ('%(asctime)s:%(module)s.%(funcName)s:%(levelname)s:'
                        ' %(message)s')
             formatter = logging.Formatter(log_fmt)
