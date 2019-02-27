@@ -64,6 +64,7 @@ class LeeBrickellAlgTest(AlgTestCase):
         ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
         ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
+    @unittest.skipIf(not AlgTestCase.FPC_ON, "Skipped fpc")
     def test_lee_alg_basic_fpc(self, name, n, k, d, w, p):
         self.common(name, n, k, d, w, p, 'basic', 'fpc')
 
@@ -74,6 +75,7 @@ class LeeBrickellAlgTest(AlgTestCase):
         ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
         ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
+    @unittest.skipIf(not AlgTestCase.FPC_ON, "Skipped fpc")
     def test_lee_alg_advanced_fpc(self, name, n, k, d, w, p):
         self.common(name, n, k, d, w, p, 'advanced', 'fpc')
 

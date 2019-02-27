@@ -110,6 +110,7 @@ class LeeBrickellCircuitTest(AlgTestCase):
         ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
         ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
+    @unittest.skipIf(not AlgTestCase.FPC_ON, "Skipped fpc")
     def test_fixed_v_basic_fpc(self, name, n, k, d, w, p):
         self.common(n, k, d, w, p, 'basic', 'fpc')
 
@@ -118,6 +119,7 @@ class LeeBrickellCircuitTest(AlgTestCase):
         ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
         ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
+    @unittest.skipIf(not AlgTestCase.FPC_ON, "Skipped fpc")
     def test_fixed_v_advanced_fpc(self, name, n, k, d, w, p):
         self.common(n, k, d, w, p, 'advanced', 'fpc')
 
