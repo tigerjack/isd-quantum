@@ -62,15 +62,17 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
                                                  "flip")
             # TODO check
             # self.n_func_domain = len(self._benes_flip_q) + self._w
-            # self.n_func_domain = len(self._benes_flip_q)
+            self.n_func_domain = len(self._benes_flip_q)
             # The input domain is nCr(n_lines, w)
-            self.n_func_domain = factorial(len(self._selectors_q)) / factorial(
-                self._w) / factorial(len(self._selectors_q) - self._w)
+            # self.n_func_domain = factorial(len(self._selectors_q)) / factorial(
+            #     self._w) / factorial(len(self._selectors_q) - self._w)
             self.circuit.add_register(self._selectors_q)
             self.circuit.add_register(self._benes_flip_q)
             self.inversion_about_zero_qubits = self._benes_flip_q
             # Flip right state
             qubits_involved_in_multicontrols.append(len(self.sum_q[1:]))
+            self.to_measure = [qr for qr in self._benes_flip_q
+                               ] + [qr for qr in self._selectors_q]
         elif self.nwr_mode == self.NWR_FPC:
             self._fpc_dict = hwc.get_circuit_for_qubits_weight_get_pattern(
                 self._n)
@@ -93,6 +95,7 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
             # Flip right state
             qubits_involved_in_multicontrols.append(
                 len(self.sum_q[1:]) + len(self._fpc_eq_q))
+            self.to_measure = self._selectors_q
 
         # We should implement a check on n if it's not a power of 2
         # TODO test if it works
@@ -124,16 +127,12 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
             # self.mct_anc = None
             pass
 
-        self.to_measure = self._selectors_q
-
     def prepare_input(self):
         _logger.debug("Here")
         self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             self.circuit.h(self._benes_flip_q)
-            hwg.generate_qubits_with_given_weight_benes(
-                self.circuit, self._selectors_q, self._benes_flip_q,
-                self._benes_dict)
+            self._hamming_weight_selectors_generate()
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.h(self._selectors_q)
         self.circuit.barrier()
@@ -142,13 +141,21 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
         _logger.debug("Here")
         self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
-            hwg.generate_qubits_with_given_weight_benes_i(
-                self.circuit, self._selectors_q, self._benes_flip_q,
-                self._benes_dict)
+            self._hamming_weight_selectors_generate_i()
             self.circuit.h(self._benes_flip_q)
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.h(self._selectors_q)
         self.circuit.barrier()
+
+    def _hamming_weight_selectors_generate(self):
+        hwg.generate_qubits_with_given_weight_benes(
+            self.circuit, self._selectors_q, self._benes_flip_q,
+            self._benes_dict)
+
+    def _hamming_weight_selectors_generate_i(self):
+        hwg.generate_qubits_with_given_weight_benes_i(
+            self.circuit, self._selectors_q, self._benes_flip_q,
+            self._benes_dict)
 
     def _hamming_weight_selectors_check(self):
         _logger.debug("Here")
