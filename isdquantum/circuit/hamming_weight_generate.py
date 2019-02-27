@@ -9,6 +9,8 @@ def generate_bits_from_flip_states(benes_pattern_dict, flip_states):
     for i in range(benes_pattern_dict['to_negate_range']):
         arr[i] = 1
     for i in benes_pattern_dict['swaps_pattern']:
+        if (flip_states[i[0]][1] == '?'):
+            continue
         if (flip_states[i[0]][1] > 0.55):
             arr[i[1]], arr[i[2]] = arr[i[2]], arr[i[1]]
     return arr
