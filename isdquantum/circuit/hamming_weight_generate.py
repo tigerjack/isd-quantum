@@ -4,6 +4,7 @@ from math import ceil, log
 logger = logging.getLogger(__name__)
 
 
+# Expects flib bits in right order and not in the qiskit way
 def generate_bits_from_flip_states(benes_pattern_dict, flip_states):
     arr = [0] * benes_pattern_dict['n_lines']
     for i in range(benes_pattern_dict['to_negate_range']):
@@ -11,7 +12,7 @@ def generate_bits_from_flip_states(benes_pattern_dict, flip_states):
     for i in benes_pattern_dict['swaps_pattern']:
         if (flip_states[i[0]][1] == '?'):
             continue
-        if (flip_states[i[0]][1] > 0.55):
+        if (flip_states[i[0]][1] > 0.5 + 1e-2):
             arr[i[1]], arr[i[2]] = arr[i[2]], arr[i[1]]
     return arr
 

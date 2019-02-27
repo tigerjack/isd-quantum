@@ -33,6 +33,7 @@ class BruteforceAlgTest(AlgTestCase):
         self.logger.debug("h = \n{0}".format(h))
         for i, s in enumerate(syndromes):
             with self.subTest(s=s):
+                self.logger.info("**************")
                 self.logger.info("Starting SUBTEST w/ s {}".format(s))
                 bru = BruteforceAlg(h, s, w, True, mct_mode, nwr_mode)
                 alg_result = bru.run('aer', 'qasm_simulator')
@@ -89,6 +90,7 @@ class BruteforceAlgTest(AlgTestCase):
         ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
     @unittest.skipIf(not AlgTestCase.SLOW_TEST, "Skipped slow test")
+    @unittest.skipIf(not AlgTestCase.FPC_ON, "Skipped fpc")
     def test_brute_basic_fpc_slow(self, name, n, k, d, w):
         self.common(name, n, k, d, w, 'basic', 'fpc')
 
@@ -99,6 +101,7 @@ class BruteforceAlgTest(AlgTestCase):
         ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
     @unittest.skipIf(not AlgTestCase.SLOW_TEST, "Skipped slow test")
+    @unittest.skipIf(not AlgTestCase.FPC_ON, "Skipped fpc")
     def test_brute_advanced_fpc_slow(self, name, n, k, d, w):
         self.common(name, n, k, d, w, 'advanced', 'fpc')
 

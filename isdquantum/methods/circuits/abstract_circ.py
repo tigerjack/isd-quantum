@@ -34,7 +34,7 @@ class ISDAbstractCircuit(ABC):
         if self.n_rounds is not None and self.n_rounds > 0:
             self.rounds = self.n_rounds
         else:
-            self.rounds = max(round(n_rounds_computed), 1)
+            self.rounds = max(round(n_rounds_computed - 2e-1), 1)
         self.prepare_input()
         for i in range(self.rounds):
             _logger.debug("ITERATION {0}".format(i))
@@ -51,30 +51,6 @@ class ISDAbstractCircuit(ABC):
             cr = ClassicalRegister(len(self.to_measure), 'cols')
             self.circuit.add_register(cr)
             self.circuit.measure(self.to_measure, cr)
-            # TEST_ONLY just useful for tests to see the status of the registers
-            # at the various stages
-            # to_measure_2 = self.sum_q
-            # cr2 = ClassicalRegister(len(to_measure_2))
-            # self.circuit.add_register(cr2)
-            # self.circuit.measure(to_measure_2, cr2)
-            # to_measure_3 = self.lee_eq_q
-            # cr3 = ClassicalRegister(len(to_measure_3))
-            # self.circuit.add_register(cr3)
-            # self.circuit.measure(to_measure_3, cr3)
-            # if self.nwr_mode == 'benes':
-            #     to_measure_4 = self.benes_flip_q
-            #     cr4 = ClassicalRegister(len(to_measure_4))
-            #     self.circuit.add_register(cr4)
-            #     self.circuit.measure(to_measure_4, cr4)
-            # elif self.nwr_mode == 'fpc':
-            #     to_measure_4 = self.fpc_eq_q
-            #     to_measure_5 = self.fpc_two_eq_q
-            #     cr4 = ClassicalRegister(len(to_measure_4))
-            #     self.circuit.add_register(cr4)
-            #     self.circuit.measure(to_measure_4, cr4)
-            #     cr5 = ClassicalRegister(len(to_measure_5))
-            #     self.circuit.add_register(cr5)
-            #     self.circuit.measure(to_measure_5, cr5)
         return self.circuit
 
     @abstractmethod
@@ -83,18 +59,18 @@ class ISDAbstractCircuit(ABC):
 
     @abstractmethod
     def prepare_input(self):
-        _logger.debug("Here")
+        # _logger.debug("Here")
         pass
 
     @abstractmethod
     def prepare_input_i(self):
-        _logger.debug("Here")
+        # _logger.debug("Here")
         pass
 
     # It rotates the states around zero, so the input state of the circuit
     # should be nearly zero
     def diffusion(self):
-        _logger.debug("Here")
+        # _logger.debug("Here")
         assert self.inversion_about_zero_qubits is not None, "Inversion about zero qubits must be initialized in subclasses"
         self.circuit.barrier()
         if len(self.inversion_about_zero_qubits) == 1:
