@@ -16,8 +16,10 @@ class ISDAbstractCircuit(ABC):
     MCT_MODES = (MCT_ADVANCED, MCT_BASIC, MCT_NOANCILLA)
 
     def __init__(self, need_measures, mct_mode, nwr_mode, n_rounds):
-        assert mct_mode in self.MCT_MODES, "Invalid mct_mode selected"
-        assert nwr_mode in self.NWR_MODES, "Invalid nwr_mode selected"
+        assert mct_mode in self.MCT_MODES, "Invalid mct_mode selected: {}".format(
+            mct_mode)
+        assert nwr_mode in self.NWR_MODES, "Invalid nwr_mode selected: {}".format(
+            nwr_mode)
         self.need_measures = need_measures
         self.mct_mode = mct_mode
         self.nwr_mode = nwr_mode
@@ -28,6 +30,7 @@ class ISDAbstractCircuit(ABC):
     def build_circuit(self):
         n_rounds_computed = pi / (
             4 * asin(1 / sqrt(self.n_func_domain))) - 1 / 2
+        _logger.debug("n rounds computed {}".format(n_rounds_computed))
         if self.n_rounds is not None and self.n_rounds > 0:
             self.rounds = self.n_rounds
         else:
@@ -39,6 +42,9 @@ class ISDAbstractCircuit(ABC):
             self.prepare_input_i()
             self.diffusion()
             self.prepare_input()
+            # #TODO delete after test
+            # _logger.warning("BREAK ENABLED!!!!")
+            # break
 
         if self.need_measures:
             from qiskit import ClassicalRegister
@@ -88,9 +94,12 @@ class ISDAbstractCircuit(ABC):
     # It rotates the states around zero, so the input state of the circuit
     # should be nearly zero
     def diffusion(self):
-        _logger.debug("Diffusion")
+        _logger.debug("Here")
         assert self.inversion_about_zero_qubits is not None, "Inversion about zero qubits must be initialized in subclasses"
         self.circuit.barrier()
+        if len(self.inversion_about_zero_qubits) == 1:
+            _logger.warn("Nothing to diffuse")
+            return
         self.circuit.x(self.inversion_about_zero_qubits)
 
         # CZ = H CX H
