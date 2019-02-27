@@ -52,6 +52,8 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
             # To compute benes_flip_q size and the permutation pattern
             self._benes_dict = hwg.generate_qubits_with_given_weight_benes_get_pattern(
                 self._n, self._w)
+            if self._benes_dict['n_flips'] <= 1:
+                raise Exception("Too few flips, unable to grover")
 
             # We don't use only n qubits, but the nearest power of 2
             self._selectors_q = QuantumRegister(self._benes_dict['n_lines'],
