@@ -1,5 +1,7 @@
 from test.common_alg import AlgTestCase
 from isdquantum.methods.circuits.lee_brickell_bruteforce_circ import LeeBrickellCircuit
+from isdquantum.utils import qiskit_support
+from isdquantum.circuit import hamming_weight_generate as hwg
 from isdclassic.methods.lee_brickell import LeeBrickell as LeeBrickellClassic
 from isdclassic.utils import rectangular_codes_hardcoded as rch
 import numpy as np
@@ -36,17 +38,17 @@ class LeeBrickellCircuitTest(AlgTestCase):
         for i, s in enumerate(syndromes):
             with self.subTest(s=s):
                 self.logger.info("Launching SUBTEST w/ s = {0}".format(s))
-                lee = LeeBrickellClassic(h, s, w, p)
-                exp_e = lee.run()
+                classic_lee = LeeBrickellClassic(h, s, w, p)
+                exp_e = classic_lee.run()
                 # Just a double check on the result of the classic algorithm
                 np.testing.assert_array_almost_equal(exp_e, errors[i])
-                hr = lee.result['hr']
-                perm = lee.result['perm']
-                s_sig = lee.result['s_sig']
-                u = lee.result['u']
-                v = lee.result['v']
-                exp_e_hat = lee.result['e_hat']
-                exp_indexes = lee.result['indexes']
+                hr = classic_lee.result['hr']
+                perm = classic_lee.result['perm']
+                s_sig = classic_lee.result['s_sig']
+                u = classic_lee.result['u']
+                v = classic_lee.result['v']
+                exp_e_hat = classic_lee.result['e_hat']
+                exp_indexes = classic_lee.result['indexes']
                 self.logger.debug("v is \n{}".format(v))
                 self.logger.debug("s_sig is {}".format(s_sig))
 
@@ -55,23 +57,64 @@ class LeeBrickellCircuitTest(AlgTestCase):
                     "LeeBrickell Classic ended, preparing quantum")
                 wanted_sum = w - p
                 shots = 4098
-                lb = LeeBrickellCircuit(v, s_sig, w, p, True, mct_mode,
-                                        nwr_mode, None)
-                qc = lb.build_circuit()
-                self.logger.debug("Rounds required {}".format(lb.rounds))
+                quantum_lee = LeeBrickellCircuit(v, s_sig, w, p, True,
+                                                 mct_mode, nwr_mode, None)
+                qc = quantum_lee.build_circuit()
+                self.logger.debug("Rounds required {}".format(
+                    quantum_lee.rounds))
                 result = self.execute_qasm(qc, shots=shots)
                 counts = result.get_counts()
-                self.logger.info(counts)
-                max_val = max(counts.values())
-                max_val_status = max(counts, key=lambda key: counts[key])
-                accuracy = max_val / shots
+                # self.logger.debug(counts)
+                if nwr_mode == LeeBrickellCircuit.NWR_BENES:
+                    per_reg_c = qiskit_support.from_global_counts_to_per_register_count(
+                        counts, len(quantum_lee._benes_flip_q),
+                        len(quantum_lee._selectors_q))
+                    self.logger.debug(
+                        "Per register count\n{}".format(per_reg_c))
+                    per_reg_p = qiskit_support.from_global_counts_to_per_register_prob(
+                        counts, len(quantum_lee._benes_flip_q),
+                        len(quantum_lee._selectors_q))
+                    self.logger.debug(
+                        "Per register prob\n{}".format(per_reg_p))
+                    flips_accuracy, flips_state = qiskit_support.from_register_prob_to_state(
+                        per_reg_p[0])
+                    selectors_accuracy, selectors_state = qiskit_support.from_register_prob_to_state(
+                        per_reg_p[1])
+                    self.logger.debug(
+                        "accuracy {} for selectors state {}".format(
+                            selectors_accuracy, selectors_state))
+                    self.logger.debug("accuracy {} for flips state {}".format(
+                        flips_accuracy, flips_state))
+                    if '?' in selectors_state:
+                        selectors_generated_state = hwg.generate_bits_from_flip_states(
+                            quantum_lee._benes_dict, per_reg_p[0])
+                        self.logger.debug(
+                            "selectors state generated from flip is {}".format(
+                                selectors_generated_state))
+                        selectors_final_state = selectors_generated_state
+                        accuracy = accuracy_flips
+                    else:
+                        selectors_final_state = selectors_state
+                        accuracy = selectors_accuracy
+                elif nwr_mode == LeeBrickellCircuit.NWR_FPC:  # FPC MODE
+                    max_val = max(counts.values())
+                    max_val_status = max(counts, key=lambda key: counts[key])
+                    accuracy = max_val / shots
+
+                    self.logger.debug(
+                        "Max value for fpc is {0} ({2:4.2f} accuracy) for status {1}"
+                        .format(max_val, max_val_status, accuracy))
+                    # qiskit state is reversed and is a string
+                    selectors_final_state = [
+                        int(x) for x in max_val_status[::-1]
+                    ]
 
                 # BUILD ERROR VECTOR
                 try:
                     self.assertGreater(accuracy, 0.4)
                     error_positions = [
-                        pos for pos, char in enumerate(max_val_status[::-1])
-                        if char == '1'
+                        pos for pos, char in enumerate(selectors_final_state)
+                        if char == 1
                     ]
                     self.assertEqual(error_positions, list(exp_indexes))
                     # self.logger.debug("Error positions {}".format(error_positions))
@@ -91,6 +134,7 @@ class LeeBrickellCircuitTest(AlgTestCase):
                     self.assertEqual(e_hat_w, w)
                     e = np.mod(np.dot(e_hat, perm.T), 2)
                     self.logger.info("Error {} real".format(e))
+                    self.logger.info("Error {} expected".format(exp_e))
                     np.testing.assert_array_equal(e, exp_e)
                 except Exception:
                     self.logger.error(
@@ -100,9 +144,6 @@ class LeeBrickellCircuitTest(AlgTestCase):
                         "accuracy={}, maxValStatus counts\n{}".format(
                             accuracy, max_val_status, counts))
                     self.logger.error("Error {} expected".format(exp_e))
-                    self.logger.error("DRAWING")
-                    self.draw_circuit(qc, "")
-                    self.logger.error("END DRAWING")
                     raise
 
     @parameterized.expand([
@@ -124,8 +165,9 @@ class LeeBrickellCircuitTest(AlgTestCase):
         self.common(n, k, d, w, p, 'advanced', 'fpc')
 
     @parameterized.expand([
-        # ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
-        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        # Too few flips
+        # ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
         # No combination is possible
         # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
@@ -134,8 +176,9 @@ class LeeBrickellCircuitTest(AlgTestCase):
         self.common(n, k, d, w, p, 'basic', 'benes')
 
     @parameterized.expand([
-        # ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
-        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
+        # Too few flips
+        # ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
         # No combination is possible
         # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
