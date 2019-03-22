@@ -5,6 +5,15 @@ import itertools
 logger = logging.getLogger(__name__)
 
 
+def from_prob_and_phase_detailed_to_qreg_prob(prob_and_phase_detailed_dict, qreg_name):
+    my_dict = {}
+    rr = [(v['detailed'][qreg_name], v['prob']) for v in prob_and_phase_detailed_dict.values()]
+    for i in rr:
+        key = i[0]
+        val = float(i[1])
+        my_dict[key] = my_dict.get(key, 0) + val
+    return my_dict
+
 def from_statevector_to_prob_and_phase(statevector, qc):
     results = {}
     for i, v in enumerate(statevector):

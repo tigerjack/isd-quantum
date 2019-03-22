@@ -143,9 +143,8 @@ class LeeBrickellCircuitTest(AlgTestCase):
                     self.logger.error(
                         "Failed TEST w/ mct_mode={}, nwr_mode={}, n={}, k={}, d={}, w={}, p={} syn={}, v=\n{}"
                         .format(mct_mode, nwr_mode, n, k, d, w, p, s_sig, v))
-                    self.logger.error(
-                        "accuracy={}, maxValStatus counts\n{}".format(
-                            accuracy, max_val_status, counts))
+                    self.logger.error("accuracy={}, counts\n{}".format(
+                        accuracy, counts))
                     self.logger.error("Error {} expected".format(exp_e))
                     raise
 
