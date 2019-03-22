@@ -15,15 +15,15 @@ class LeeBrickellAlgTest(AlgTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        pass
         import logging
-        other_logger = logging.getLogger('isdclassic')
-        other_logger.setLevel(cls.logger.level)
-        other_logger.handlers = cls.logger.handlers
         other_logger = logging.getLogger('isdquantum.methods.algorithms')
         other_logger.setLevel(cls.logger.level)
         other_logger.handlers = cls.logger.handlers
         other_logger = logging.getLogger('isdquantum.methods.circuits')
+        other_logger.setLevel(cls.logger.level)
+        other_logger.handlers = cls.logger.handlers
+        return
+        other_logger = logging.getLogger('isdclassic')
         other_logger.setLevel(cls.logger.level)
         other_logger.handlers = cls.logger.handlers
 
@@ -83,8 +83,10 @@ class LeeBrickellAlgTest(AlgTestCase):
         ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
-        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
-        ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
+        # Too few flips to grover
+        # ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        # No combination possible
+        # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
     def test_lee_alg_advanced_benes(self, name, n, k, d, w, p):
@@ -94,8 +96,10 @@ class LeeBrickellAlgTest(AlgTestCase):
         ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
         ("n8_k4_d4_w2_p2", 8, 4, 4, 2, 2),
-        ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
-        ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
+        # Too few flips to grover
+        # ("n8_k2_d5_w3_p1", 8, 2, 5, 3, 1),
+        # No combination possible
+        # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
     @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
     def test_lee_alg_basic_benes(self, name, n, k, d, w, p):

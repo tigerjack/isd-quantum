@@ -20,11 +20,12 @@ class LeeBrickellCircuitTest(AlgTestCase):
     def setUpClass(cls):
         super().setUpClass()
         import logging
-        # other_logger = logging.getLogger('isdclassic')
-        # other_logger.setLevel(cls.logger.level)
-        # other_logger.handlers = cls.logger.handlers
         other_logger = logging.getLogger(
             'isdquantum.methods.circuits.lee_brickell_bruteforce_circ')
+        other_logger.setLevel(cls.logger.level)
+        other_logger.handlers = cls.logger.handlers
+        return
+        other_logger = logging.getLogger('isdclassic')
         other_logger.setLevel(cls.logger.level)
         other_logger.handlers = cls.logger.handlers
 
@@ -92,7 +93,7 @@ class LeeBrickellCircuitTest(AlgTestCase):
                             "selectors state generated from flip is {}".format(
                                 selectors_generated_state))
                         selectors_final_state = selectors_generated_state
-                        accuracy = accuracy_flips
+                        accuracy = flips_accuracy
                     else:
                         selectors_final_state = selectors_state
                         accuracy = selectors_accuracy
@@ -108,6 +109,8 @@ class LeeBrickellCircuitTest(AlgTestCase):
                     selectors_final_state = [
                         int(x) for x in max_val_status[::-1]
                     ]
+                self.logger.debug("Selector finale state is {}".format(
+                    selectors_final_state))
 
                 # BUILD ERROR VECTOR
                 try:

@@ -60,9 +60,9 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
                                                 'select')
             self._benes_flip_q = QuantumRegister(self._benes_dict['n_flips'],
                                                  "flip")
-            # TODO check
-            # self.n_func_domain = len(self._benes_flip_q) + self._w
+            # TODO just a quick workaround, should be incremental
             self.n_func_domain = len(self._benes_flip_q)
+            # self.n_func_domain = (2**len(self._benes_flip_q)) / factorial(self.w)
             # The input domain is nCr(n_lines, w)
             # self.n_func_domain = factorial(len(self._selectors_q)) / factorial(
             #     self._w) / factorial(len(self._selectors_q) - self._w)
@@ -124,23 +124,23 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
 
     def prepare_input(self):
         # _logger.debug("Here")
-        self.circuit.barrier()
+        #self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             self.circuit.h(self._benes_flip_q)
             self._hamming_weight_selectors_generate()
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.h(self._selectors_q)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def prepare_input_i(self):
         # _logger.debug("Here")
-        self.circuit.barrier()
+        #self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             self._hamming_weight_selectors_generate_i()
             self.circuit.h(self._benes_flip_q)
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.h(self._selectors_q)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def _hamming_weight_selectors_generate(self):
         hwg.generate_qubits_with_given_weight_benes(
@@ -154,19 +154,19 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
 
     def _hamming_weight_selectors_check(self):
         # _logger.debug("Here")
-        self.circuit.barrier()
+        #self.circuit.barrier()
         self.fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check(
             self.circuit, self._selectors_q, self.ancillas_list,
             self._fpc_cout_q, self._fpc_eq_q, self.ancillas_list, self._w,
             self._fpc_dict)
-        _logger.debug(
-            "Result qubits for Hamming Weight of selectors {}".format(
-                self.fpc_result_qubits))
-        self.circuit.barrier()
+        # _logger.debug(
+        #     "Result qubits for Hamming Weight of selectors {}".format(
+        #         self.fpc_result_qubits))
+        #self.circuit.barrier()
 
     def _hamming_weight_selectors_check_i(self):
         # _logger.debug("Here")
-        self.circuit.barrier()
+        #self.circuit.barrier()
         self.fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check_i(
             self.circuit,
             self._selectors_q,
@@ -178,39 +178,39 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
             self._fpc_dict,
             self.fpc_result_qubits,
             uncomputeEq=True)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def _matrix2gates(self):
         # _logger.debug("Here")
-        self.circuit.barrier()
+        #self.circuit.barrier()
         for i in range(self._h.shape[1]):
             qregs.conditionally_initialize_qureg_given_bitstring(
                 self._h[:, i].tolist(), self.sum_q, [self._selectors_q[i]],
                 None, self.circuit, self.mct_mode)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def _matrix2gates_i(self):
         # _logger.debug("Here")
-        self.circuit.barrier()
+        #self.circuit.barrier()
         for i in reversed(range(self._h.shape[1])):
             qregs.conditionally_initialize_qureg_given_bitstring(
                 self._h[:, i].tolist(), self.sum_q, [self._selectors_q[i]],
                 None, self.circuit, self.mct_mode)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def _syndrome2gates(self):
         # _logger.debug("Here")
-        self.circuit.barrier()
+        #self.circuit.barrier()
         qregs.initialize_qureg_to_complement_of_bitarray(
             self._syndrome.tolist(), self.sum_q, self.circuit)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def _syndrome2gates_i(self):
         return self._syndrome2gates()
 
     def _flip_correct_state(self):
         # _logger.debug("Here")
-        self.circuit.barrier()
+        #self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             controls_q = self.sum_q[1:]
             to_invert_q = self.sum_q[0]
@@ -223,7 +223,7 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
             controls_q, to_invert_q, self.ancillas_list, mode=self.mct_mode)
         self.circuit.h(to_invert_q)
         # CZ END
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def oracle(self):
         # _logger.debug("Here")

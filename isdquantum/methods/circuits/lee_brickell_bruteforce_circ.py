@@ -130,31 +130,31 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             pass
 
     def _hamming_weight_selectors_generate(self):
-        _logger.debug("Here")
+        # _logger.debug("Here")
         hwg.generate_qubits_with_given_weight_benes(
             self.circuit, self._selectors_q, self._benes_flip_q,
             self._benes_dict)
 
     def _hamming_weight_selectors_generate_i(self):
-        _logger.debug("Here")
+        # _logger.debug("Here")
         hwg.generate_qubits_with_given_weight_benes_i(
             self.circuit, self._selectors_q, self._benes_flip_q,
             self._benes_dict)
 
     def _hamming_weight_selectors_check(self):
-        _logger.debug("Here")
-        self.circuit.barrier()
+        # _logger.debug("Here")
+        #self.circuit.barrier()
         self._fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check(
             self.circuit, self._selectors_q, self.ancillas_list,
             self._fpc_cout_q, self._fpc_eq_q, self.ancillas_list, self._p,
             self._fpc_dict, self.mct_mode)
-        _logger.debug(
-            "Result qubits for Hamming Weight of selectors {}".format(
-                self._fpc_result_qubits))
-        self.circuit.barrier()
+        # _logger.debug(
+        #     "Result qubits for Hamming Weight of selectors {}".format(
+        #         self._fpc_result_qubits))
+        #self.circuit.barrier()
 
     def _hamming_weight_selectors_check_i(self):
-        _logger.debug("Here")
+        # _logger.debug("Here")
         _logger.debug(
             "Result qubits for Hamming Weight inverse of selectors {}".format(
                 self._fpc_result_qubits))
@@ -173,48 +173,48 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             uncomputeEq=True)
 
     def _matrix2gates(self):
-        _logger.debug("Here")
-        self.circuit.barrier()
+        # _logger.debug("Here")
+        #self.circuit.barrier()
         for i in range(self._v.shape[1]):
             qregs.conditionally_initialize_qureg_given_bitstring(
                 self._v[:, i].tolist(), self._sum_q, [self._selectors_q[i]],
                 None, self.circuit, self.mct_mode)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def _matrix2gates_i(self):
-        _logger.debug("Here")
-        self.circuit.barrier()
+        # _logger.debug("Here")
+        #self.circuit.barrier()
         for i in reversed(range(self._v.shape[1])):
             qregs.conditionally_initialize_qureg_given_bitstring(
                 self._v[:, i].tolist(), self._sum_q, [self._selectors_q[i]],
                 None, self.circuit, self.mct_mode)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def _syndrome2gates(self):
-        _logger.debug("Here")
-        self.circuit.barrier()
+        # _logger.debug("Here")
+        #self.circuit.barrier()
         qregs.initialize_qureg_given_bitstring(self._syndrome.tolist(),
                                                self._sum_q, self.circuit)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def _syndrome2gates_i(self):
-        _logger.debug("Here")
+        # _logger.debug("Here")
         return self._syndrome2gates()
 
     def _lee_weight_check(self):
-        _logger.debug("Here")
-        self.circuit.barrier()
+        # _logger.debug("Here")
+        #self.circuit.barrier()
         self._lee_result_qubits = hwc.get_circuit_for_qubits_weight_check(
             self.circuit, self._sum_q, self.ancillas_list, self._lee_cout_q,
             self._lee_eq_q, self.ancillas_list, self._w - self._p,
             self._lee_fpc_dict, self.mct_mode)
-        _logger.debug("Result qubits for lee weight check are {}".format(
-            self._lee_result_qubits))
-        self.circuit.barrier()
+        # _logger.debug("Result qubits for lee weight check are {}".format(
+        #     self._lee_result_qubits))
+        #self.circuit.barrier()
 
     def _lee_weight_check_i(self):
-        _logger.debug("Here")
-        self.circuit.barrier()
+        # _logger.debug("Here")
+        #self.circuit.barrier()
         # TEST_ONLY uncomputeEq should be True, here it's just used for test
         hwc.get_circuit_for_qubits_weight_check_i(
             self.circuit,
@@ -228,11 +228,11 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             self._lee_result_qubits,
             self.mct_mode,
             uncomputeEq=True)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def _flip_correct_state(self):
-        _logger.debug("Here")
-        self.circuit.barrier()
+        # _logger.debug("Here")
+        #self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             self.circuit.z(self._lee_eq_q)
         elif self.nwr_mode == self.NWR_FPC:
@@ -241,31 +241,31 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
             # additional qubit, we can just do a CZ gate b/w fpc_eq and lee_eq
             # bcz a Z gate won't do anything to state 0
             self.circuit.cz(self._fpc_eq_q, self._lee_eq_q)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def prepare_input(self):
-        _logger.debug("Here")
-        self.circuit.barrier()
+        # _logger.debug("Here")
+        #self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             self.circuit.h(self._benes_flip_q)
             self._hamming_weight_selectors_generate()
             #TODO added here for test
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.h(self._selectors_q)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def prepare_input_i(self):
-        _logger.debug("Here")
-        self.circuit.barrier()
+        # _logger.debug("Here")
+        #self.circuit.barrier()
         if self.nwr_mode == self.NWR_BENES:
             self._hamming_weight_selectors_generate_i()
             self.circuit.h(self._benes_flip_q)
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.h(self._selectors_q)
-        self.circuit.barrier()
+        #self.circuit.barrier()
 
     def oracle(self):
-        _logger.debug("Here")
+        # _logger.debug("Here")
         if self.nwr_mode == self.NWR_BENES:
             self._matrix2gates()
             self._syndrome2gates()

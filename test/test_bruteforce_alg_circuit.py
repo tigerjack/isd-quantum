@@ -15,12 +15,11 @@ class BruteforceAlgTest(AlgTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # pass
         import logging
-        other_logger = logging.getLogger('isdquantum.methods.algorithms')
+        other_logger = logging.getLogger('isdquantum.methods.circuits')
         other_logger.setLevel(cls.logger.level)
         other_logger.handlers = cls.logger.handlers
-        other_logger = logging.getLogger('isdquantum.methods.circuits')
+        other_logger = logging.getLogger('isdquantum.methods.algorithms')
         other_logger.setLevel(cls.logger.level)
         other_logger.handlers = cls.logger.handlers
 
@@ -109,7 +108,8 @@ class BruteforceAlgTest(AlgTestCase):
         ("n7_k4_d3_w1", 7, 4, 3, 1),
         ("n8_k4_d4_w1", 8, 4, 4, 1),
         ("n8_k4_d4_w2", 8, 4, 4, 2),
-        ("n8_k2_d5_w3", 8, 2, 5, 3),
+        # 33 qubits needed, 32 available
+        # ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
     @unittest.skipIf(not AlgTestCase.SLOW_TEST, "Skipped slow test")
     @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")

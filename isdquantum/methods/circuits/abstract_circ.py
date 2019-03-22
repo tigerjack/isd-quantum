@@ -30,14 +30,14 @@ class ISDAbstractCircuit(ABC):
     def build_circuit(self):
         n_rounds_computed = pi / (
             4 * asin(1 / sqrt(self.n_func_domain))) - 1 / 2
-        _logger.debug("n rounds computed {}".format(n_rounds_computed))
+        _logger.debug("n rounds computed {:.2f}".format(n_rounds_computed))
         if self.n_rounds is not None and self.n_rounds > 0:
             self.rounds = self.n_rounds
         else:
             self.rounds = max(round(n_rounds_computed - 2e-1), 1)
         self.prepare_input()
         for i in range(self.rounds):
-            _logger.debug("ITERATION {0}".format(i))
+            # _logger.debug("ITERATION {0}".format(i))
             self.oracle()
             self.prepare_input_i()
             self.diffusion()
@@ -45,6 +45,7 @@ class ISDAbstractCircuit(ABC):
             # #TODO delete after test
             # _logger.warning("BREAK ENABLED!!!!")
             # break
+        _logger.debug("{0} rounds performed".format(i + 1))
 
         if self.need_measures:
             from qiskit import ClassicalRegister
@@ -72,7 +73,7 @@ class ISDAbstractCircuit(ABC):
     def diffusion(self):
         # _logger.debug("Here")
         assert self.inversion_about_zero_qubits is not None, "Inversion about zero qubits must be initialized in subclasses"
-        self.circuit.barrier()
+        #self.circuit.barrier()
         if len(self.inversion_about_zero_qubits) == 1:
             _logger.warn("Nothing to diffuse")
             return
@@ -89,4 +90,4 @@ class ISDAbstractCircuit(ABC):
         # CZ END
 
         self.circuit.x(self.inversion_about_zero_qubits)
-        self.circuit.barrier()
+        #self.circuit.barrier()

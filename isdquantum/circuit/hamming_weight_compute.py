@@ -141,16 +141,16 @@ def get_circuit_for_qubits_weight_check(circuit,
                                         mode='advanced'):
     equal_str = binary.get_bitstring_from_int(weight_int,
                                               len(patterns_dict['results']))
-    circuit.barrier()
+    #circuit.barrier()
     result_qubits = get_circuit_for_qubits_weight(circuit, a_qs, cin_q,
                                                   cout_qs, patterns_dict)
-    circuit.barrier()
+    #circuit.barrier()
     _ = qregs.initialize_qureg_to_complement_of_bitstring(
         equal_str, result_qubits, circuit)
-    circuit.barrier()
+    #circuit.barrier()
 
     circuit.mct([qb for qb in result_qubits], eq_q[0], anc_q, mode=mode)
-    circuit.barrier()
+    #circuit.barrier()
     return result_qubits
 
 
@@ -167,13 +167,13 @@ def get_circuit_for_qubits_weight_check_i(circuit,
                                           uncomputeEq=True):
     equal_str = binary.get_bitstring_from_int(weight_int,
                                               len(patterns_dict['results']))
-    circuit.barrier()
+    #circuit.barrier()
     if uncomputeEq:
         circuit.mct([qb for qb in result_qubits], eq_q[0], anc_q, mode=mode)
-    circuit.barrier()
+    #circuit.barrier()
     _ = qregs.initialize_qureg_to_complement_of_bitstring(
         equal_str, result_qubits, circuit)
-    circuit.barrier()
+    #circuit.barrier()
     get_circuit_for_qubits_weight_i(circuit, a_qs, cin_q, cout_qs,
                                     patterns_dict)
-    circuit.barrier()
+    #circuit.barrier()
