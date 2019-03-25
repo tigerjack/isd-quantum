@@ -49,6 +49,14 @@ class BasicTestCase(unittest.TestCase):
             handler.setFormatter(formatter)
             cls.logger.addHandler(handler)
             cls.logger.setLevel(logging_level)
+            if os.getenv('LOG_CLI'):
+            # Disabled stream handler for now
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter(
+                    '%(module)-4s %(levelname)-8s %(funcName)-12s %(message)s')
+                handler.setFormatter(formatter)
+                cls.logger.addHandler(handler)
+                cls.logger.setLevel(logging_level)
 
         cls.logger.warning("SLOW_TEST is {}".format(
             "ON, tests may take a long time" if cls.
