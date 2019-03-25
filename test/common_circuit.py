@@ -18,7 +18,7 @@ class CircuitTestCase(BasicTestCase):
         return qiskit_support.run(qc, backend, shots)
 
     @staticmethod
-    def execute_statevector(qc):
-        backend = qiskit_support.get_backend(
-            'basicaer', 'statevector_simulator', qc.width())
-        return qiskit_support.run(qc, backend, 1)
+    def execute_statevector(qc, backend_options={}):
+        backend = qiskit_support.get_backend('aer', 'statevector_simulator',
+                                             qc.width())
+        return qiskit_support.run(qc, backend, backend_options={})

@@ -5,14 +5,24 @@ import itertools
 logger = logging.getLogger(__name__)
 
 
-def from_prob_and_phase_detailed_to_qreg_prob(prob_and_phase_detailed_dict, qreg_name):
-    my_dict = {}
-    rr = [(v['detailed'][qreg_name], v['prob']) for v in prob_and_phase_detailed_dict.values()]
+# Input is result of from_prob_and_phase_detailed_to_qreg_prob
+def get_max_from_qreg_prob(qreg_prob):
+    return max(qreg_prob.items(), key=lambda x: x[1])
+
+
+def from_prob_and_phase_detailed_to_qreg_prob(prob_and_phase_detailed_dict,
+                                              qreg_name):
+    my_dict = {}  # probs
+    my_dict2 = {}  # time encountered
+    rr = [(v['detailed'][qreg_name], v['prob'])
+          for v in prob_and_phase_detailed_dict.values()]
     for i in rr:
         key = i[0]
         val = float(i[1])
         my_dict[key] = my_dict.get(key, 0) + val
-    return my_dict
+        my_dict2[key] = my_dict2.get(key, 0) + 1
+    return (my_dict, my_dict2)
+
 
 def from_statevector_to_prob_and_phase(statevector, qc):
     results = {}
@@ -177,9 +187,10 @@ def get_backend(provider_name, backend_name, n_qubits):
     return backend
 
 
-def draw_circuit(qc, img_dir):
+def draw_circuit(qc, img_dir, output='mpl'):
     logger.info("Drawing circuit")
-    img_file = img_dir + qc.name
+    img_file = "".join([img_dir, qc.name, ".png"
+                        ]) if img_dir is not None else None
     style_mpl = {
         'cregbundle': True,
         'compress': True,
@@ -210,8 +221,7 @@ def draw_circuit(qc, img_dir):
         }
     }
     from qiskit.tools.visualization import circuit_drawer
-    circuit_drawer(
-        qc, filename=img_file + ".png", style=style_mpl, output='mpl')
+    circuit_drawer(qc, filename=img_file, style=style_mpl, output=output)
     # print("Drawn")
     # circuit_drawer(qc, filename=img_file, output='latex')
     # circuit_drawer(qc, filename=img_file, output='latex_source')
@@ -227,7 +237,19 @@ def draw_dag(qc, img_dir):
     dag_drawer(dag, filename=img_file + ".png")
 
 
-def get_compiled_circuit_infos(qc, backend):
+# Input should be a qc transpiled for a specific backend
+# Eg
+# from qiskit import transpiler
+# qc_comp = transpiler.transpile(qc, backend=backend, basis_gates=['u1', 'u2', 'u3', 'cx'])
+def get_compiled_circuit_instructions_count(qc_comp):
+    res = {}
+    d = qc_comp.as_dict()['experiments'][0]['instructions']
+    for v in d:
+        res[v['name']] = res.get(v['name'], 0) + 1
+    return res
+
+
+def get_circuit_infos(qc):
     infos = {}
     logger.debug("Getting infos ... ")
     # backend_coupling = backend.configuration()['coupling_map']
@@ -237,12 +259,6 @@ def get_compiled_circuit_infos(qc, backend):
     # infos['n_gates_qasm'] = sum(qc.count_ops().values())
     infos['n_gates_qasm'] = qc.size()
     infos['num_tensor_factors'] = qc.num_tensor_factors()
-    # qc_qasm = qc.qasm()
-    # infos['n_gates_qasm'] = len(qc_qasm.split("\n")) - 4
-    # from qiskit import compile
-    # qc_compiled = compile(qc, backend=backend)
-    # qc_compiled_qasm = qc_compiled.experiments[0].header.compiled_circuit_qasm
-    # infos['n_gates_compiled'] = len(qc_compiled_qasm.split("\n")) - 4
     return infos
 
 
@@ -277,13 +293,13 @@ def export_circuit_to_qasm(qc, filename):
         f.write(q)
 
 
-def run(qc, backend, shots=8192):
+def run(qc, backend, shots=8192, backend_options={}):
     logger.info(
         "Preparing execution with backend {0} from provider {1}".format(
             backend, backend.provider()))
     from qiskit import execute
     logger.debug("Execute")
-    job = execute(qc, backend, shots=shots)
+    job = execute(qc, backend, shots=shots, backend_options=backend_options)
     logger.info("Job id is {0}".format(job.job_id()))
     if (not backend.status().operational or backend.status().pending_jobs > 2
             or backend.status().status_msg == 'calibrating'):
