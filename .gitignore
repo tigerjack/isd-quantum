@@ -1,6 +1,8 @@
 # Mine
 data/
 img/
+test/logs/
+test/reports/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
