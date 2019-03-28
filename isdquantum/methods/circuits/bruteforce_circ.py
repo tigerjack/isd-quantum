@@ -158,9 +158,15 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
         # _logger.debug("Here")
         #self.circuit.barrier()
         self.fpc_result_qubits = hwc.get_circuit_for_qubits_weight_check(
-            self.circuit, self._selectors_q, self.ancillas_list,
-            self._fpc_cout_q, self._fpc_eq_q, self.ancillas_list, self._w,
-            self._fpc_dict)
+            self.circuit,
+            self._selectors_q,
+            self.ancillas_list,
+            self._fpc_cout_q,
+            self._fpc_eq_q,
+            self.ancillas_list,
+            self._w,
+            self._fpc_dict,
+            mode=self.mct_mode)
         # _logger.debug(
         #     "Result qubits for Hamming Weight of selectors {}".format(
         #         self.fpc_result_qubits))
@@ -179,6 +185,7 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
             self._w,
             self._fpc_dict,
             self.fpc_result_qubits,
+            mode=self.mct_mode,
             uncomputeEq=True)
         #self.circuit.barrier()
 
