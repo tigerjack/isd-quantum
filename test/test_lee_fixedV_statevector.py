@@ -75,38 +75,13 @@ class LeeBrickellCircuitTest(AlgTestCase):
                     statevector_results_selectors)
                 self.logger.debug("max status {} with probability {}".format(
                     max_k_v[0], max_k_v[1]))
-                if nwr_mode == BruteforceISDCircuit.NWR_FPC:
+                if nwr_mode == LeeBrickellCircuit.NWR_FPC:
                     self.assertGreater(max_k_v[1], 0.9)
                 error_positions = [
                     pos for pos, char in enumerate(max_k_v[0][::-1])
                     if char == '1'
                 ]
                 self.assertEqual(error_positions, list(exp_indexes))
-                #     v_extr = v[:, error_positions]
-                #     sum_to_s = (v_extr.sum(axis=1) + s_sig) % 2
-                #     sum_to_s_w = np.sum(sum_to_s)
-                #     self.assertEqual(sum_to_s_w, wanted_sum)
-                #     e_hat = np.concatenate((np.zeros(k), sum_to_s))
-                #     for j in error_positions:
-                #         e_hat[j] = 1
-                #     self.logger.debug(
-                #         "e_hat after error position is {}".format(e_hat))
-                #     np.testing.assert_array_equal(e_hat, exp_e_hat)
-                #     # print("expected e_hat is {}".format(exp_e_hat))
-                #     e_hat_w = np.sum(e_hat)
-                #     self.assertEqual(e_hat_w, w)
-                #     e = np.mod(np.dot(e_hat, perm.T), 2)
-                #     self.logger.info("Error {} real".format(e))
-                #     self.logger.info("Error {} expected".format(exp_e))
-                #     np.testing.assert_array_equal(e, exp_e)
-                # except Exception:
-                #     self.logger.error(
-                #         "Failed TEST w/ mct_mode={}, nwr_mode={}, n={}, k={}, d={}, w={}, p={} syn={}, v=\n{}"
-                #         .format(mct_mode, nwr_mode, n, k, d, w, p, s_sig, v))
-                #     self.logger.error("accuracy={}, counts\n{}".format(
-                #         accuracy, counts))
-                #     self.logger.error("Error {} expected".format(exp_e))
-                #     raise
 
     @parameterized.expand([
         ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
