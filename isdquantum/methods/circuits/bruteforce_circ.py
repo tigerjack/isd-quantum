@@ -121,6 +121,8 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
             # no ancilla to add
             # self.mct_anc = None
             pass
+        # TODO added here for test
+        self.circuit.x(self.inversion_about_zero_qubits)
 
     def prepare_input(self):
         # _logger.debug("Here")

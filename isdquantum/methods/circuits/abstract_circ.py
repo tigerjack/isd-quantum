@@ -77,7 +77,7 @@ class ISDAbstractCircuit(ABC):
         if len(self.inversion_about_zero_qubits) == 1:
             _logger.warn("Nothing to diffuse")
             return
-        self.circuit.x(self.inversion_about_zero_qubits)
+        # self.circuit.x(self.inversion_about_zero_qubits)
 
         # CZ = H CX H
         self.circuit.h(self.inversion_about_zero_qubits[0])
@@ -89,5 +89,5 @@ class ISDAbstractCircuit(ABC):
         self.circuit.h(self.inversion_about_zero_qubits[0])
         # CZ END
 
-        self.circuit.x(self.inversion_about_zero_qubits)
+        # self.circuit.x(self.inversion_about_zero_qubits)
         #self.circuit.barrier()

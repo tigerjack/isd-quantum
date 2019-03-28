@@ -128,6 +128,8 @@ class LeeBrickellCircuit(ISDAbstractCircuit):
         elif self.mct_mode == self.MCT_NOANCILLA:
             # self.mct_anc = None
             pass
+        # TODO added here for test
+        self.circuit.x(self.inversion_about_zero_qubits)
 
     def _hamming_weight_selectors_generate(self):
         # _logger.debug("Here")
