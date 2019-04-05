@@ -8,8 +8,11 @@ class CircuitTestCase(BasicTestCase):
         super().setUpClass()
 
     @staticmethod
-    def draw_circuit(circuit, filename):
-        qiskit_support.draw_circuit(circuit, "data/img/test/" + filename)
+    def draw_circuit(circuit, filename, output='mpl'):
+        qiskit_support.draw_circuit(
+            circuit,
+            "data/img/test/" + filename if filename is not None else None,
+            output=output)
 
     @staticmethod
     def execute_qasm(qc, shots=1024):
