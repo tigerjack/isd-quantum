@@ -4,7 +4,7 @@ import os
 
 
 class AlgTestCase(CircuitTestCase):
-    BENES_ON = int(os.getenv('BENES_ON', '0'))
+    BUTTERFLY_ON = int(os.getenv('BUTTERFLY_ON', '0'))
     FPC_ON = int(os.getenv('FPC_ON', '0'))
 
     @classmethod

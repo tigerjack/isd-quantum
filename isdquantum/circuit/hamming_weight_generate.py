@@ -5,11 +5,11 @@ logger = logging.getLogger(__name__)
 
 
 # Expects flib bits in right order and not in the qiskit way
-def generate_bits_from_flip_states(benes_pattern_dict, flip_states):
-    arr = [0] * benes_pattern_dict['n_lines']
-    for i in range(benes_pattern_dict['to_negate_range']):
+def generate_bits_from_flip_states(butterfly_pattern_dict, flip_states):
+    arr = [0] * butterfly_pattern_dict['n_lines']
+    for i in range(butterfly_pattern_dict['to_negate_range']):
         arr[i] = 1
-    for i in benes_pattern_dict['swaps_pattern']:
+    for i in butterfly_pattern_dict['swaps_pattern']:
         if (flip_states[i[0]][1] == '?'):
             continue
         if (flip_states[i[0]][1] > 0.5 + 1e-2):
@@ -17,27 +17,27 @@ def generate_bits_from_flip_states(benes_pattern_dict, flip_states):
     return arr
 
 
-def generate_qubits_with_given_weight_benes(circuit, a_qs, flip_qs,
-                                            benes_pattern_dict):
-    assert len(a_qs) == benes_pattern_dict['n_lines']
-    assert len(flip_qs) == benes_pattern_dict['n_flips']
-    for i in range(benes_pattern_dict['to_negate_range']):
+def generate_qubits_with_given_weight_butterfly(circuit, a_qs, flip_qs,
+                                            butterfly_pattern_dict):
+    assert len(a_qs) == butterfly_pattern_dict['n_lines']
+    assert len(flip_qs) == butterfly_pattern_dict['n_flips']
+    for i in range(butterfly_pattern_dict['to_negate_range']):
         circuit.x(a_qs[i])
-    for i in benes_pattern_dict['swaps_pattern']:
+    for i in butterfly_pattern_dict['swaps_pattern']:
         circuit.cswap(flip_qs[i[0]], a_qs[i[1]], a_qs[i[2]])
-    if benes_pattern_dict['negated_permutation']:
+    if butterfly_pattern_dict['negated_permutation']:
         circuit.x(a_qs)
 
 
-def generate_qubits_with_given_weight_benes_i(circuit, a_qs, flip_qs,
-                                              benes_pattern_dict):
-    assert len(a_qs) == benes_pattern_dict['n_lines']
-    assert len(flip_qs) == benes_pattern_dict['n_flips']
-    if benes_pattern_dict['negated_permutation']:
+def generate_qubits_with_given_weight_butterfly_i(circuit, a_qs, flip_qs,
+                                              butterfly_pattern_dict):
+    assert len(a_qs) == butterfly_pattern_dict['n_lines']
+    assert len(flip_qs) == butterfly_pattern_dict['n_flips']
+    if butterfly_pattern_dict['negated_permutation']:
         circuit.x(a_qs)
-    for i in benes_pattern_dict['swaps_pattern'][::-1]:
+    for i in butterfly_pattern_dict['swaps_pattern'][::-1]:
         circuit.cswap(flip_qs[i[0]], a_qs[i[1]], a_qs[i[2]])
-    for i in range(benes_pattern_dict['to_negate_range'])[::-1]:
+    for i in range(butterfly_pattern_dict['to_negate_range'])[::-1]:
         circuit.x(a_qs[i])
 
 
@@ -59,7 +59,7 @@ def generate_qubits_with_given_weight_benes_i(circuit, a_qs, flip_qs,
 #    r bits to 1 and then apply the permutation network, we initialize
 #    n - r bits to 1 and apply the permutation network. In the latter case,
 #    the obtained permutation should be negated.
-def generate_qubits_with_given_weight_benes_get_pattern(n, r):
+def generate_qubits_with_given_weight_butterfly_get_pattern(n, r):
     nwr_dict = {}
     steps = ceil(log(n, 2))
     nwr_dict['n_lines'] = 2**steps
@@ -73,7 +73,7 @@ def generate_qubits_with_given_weight_benes_get_pattern(n, r):
     else:
         initial_swaps = r
 
-    _benes_permutation_pattern_support(0, initial_swaps,
+    _butterfly_permutation_pattern_support(0, initial_swaps,
                                        int(nwr_dict['n_lines'] / 2), 0,
                                        nwr_dict)
     nwr_dict['n_flips'] = len(nwr_dict['swaps_pattern'])
@@ -87,7 +87,7 @@ def generate_qubits_with_given_weight_benes_get_pattern(n, r):
     return nwr_dict
 
 
-def _benes_permutation_pattern_support(start, end, swap_step, flip_q_idx,
+def _butterfly_permutation_pattern_support(start, end, swap_step, flip_q_idx,
                                        nwr_dict):
     logger.debug("Start: {0}, end: {1}, swap_step: {2}".format(
         start, end, swap_step))
@@ -107,13 +107,13 @@ def _benes_permutation_pattern_support(start, end, swap_step, flip_q_idx,
     logger.debug(
         "Before recursion 1, start: {0}, end: {1}, swap_step: {2}, for_iter_next"
         .format(start, end, swap_step, for_iter_next))
-    flip_q_idx = _benes_permutation_pattern_support(
+    flip_q_idx = _butterfly_permutation_pattern_support(
         start, start + for_iter_next, int(swap_step / 2), flip_q_idx, nwr_dict)
 
     logger.debug(
         "Before recursion, start: {0}, end: {1}, swap_step: {2}, for_iter_next {3}"
         .format(start, end, swap_step, for_iter_next))
-    flip_q_idx = _benes_permutation_pattern_support(
+    flip_q_idx = _butterfly_permutation_pattern_support(
         start + swap_step, start + swap_step + for_iter_next,
         int(swap_step / 2), flip_q_idx, nwr_dict)
     return flip_q_idx

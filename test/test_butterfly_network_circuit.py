@@ -42,7 +42,7 @@ class BenesTestCase(CircuitTestCase):
         # ('n16w1r', 16, 1, True),
     ])
     def test_patterns(self, name, n, w, reverse):
-        permutation_dict = hwg.generate_qubits_with_given_weight_benes_get_pattern(
+        permutation_dict = hwg.generate_qubits_with_given_weight_butterfly_get_pattern(
             n, w)
         self.logger.debug("n_flips = {0}".format(permutation_dict['n_flips']))
         self.logger.debug("n_lines = {0}".format(permutation_dict['n_lines']))

@@ -15,7 +15,7 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
 
     # mct stands for qiskit aqua multicontrol
     # nwr stands for n bits of weight r
-    # In benes mode it could happen that the correct error vector is the one obtained by the sum
+    # In butterfly mode it could happen that the correct error vector is the one obtained by the sum
     # of the first w columns. This means that all the flip_q hadamards are off and for this reason
     # there is no entanglement. Multiple rounds of the circuits are unneeded and have the only
     # effect to decrease the probability outcome.
@@ -48,30 +48,30 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
         self.sum_q = QuantumRegister(self._r, 'sum')
         self.ancillas_list = []
         qubits_involved_in_multicontrols = []
-        if self.nwr_mode == self.NWR_BENES:
-            # To compute benes_flip_q size and the permutation pattern
-            self._benes_dict = hwg.generate_qubits_with_given_weight_benes_get_pattern(
+        if self.nwr_mode == self.NWR_BUTTERFLY:
+            # To compute butterfly_flip_q size and the permutation pattern
+            self._butterfly_dict = hwg.generate_qubits_with_given_weight_butterfly_get_pattern(
                 self._n, self._w)
-            if self._benes_dict['n_flips'] <= 1:
+            if self._butterfly_dict['n_flips'] <= 1:
                 raise Exception("Too few flips, unable to grover")
 
             # We don't use only n qubits, but the nearest power of 2
-            self._selectors_q = QuantumRegister(self._benes_dict['n_lines'],
-                                                'select')
-            self._benes_flip_q = QuantumRegister(self._benes_dict['n_flips'],
-                                                 "flip")
+            self._selectors_q = QuantumRegister(
+                self._butterfly_dict['n_lines'], 'select')
+            self._butterfly_flip_q = QuantumRegister(
+                self._butterfly_dict['n_flips'], "flip")
             # TODO just a quick workaround, should be incremental
-            self.n_func_domain = len(self._benes_flip_q)
-            # self.n_func_domain = (2**len(self._benes_flip_q)) / factorial(self.w)
+            self.n_func_domain = len(self._butterfly_flip_q)
+            # self.n_func_domain = (2**len(self._butterfly_flip_q)) / factorial(self.w)
             # The input domain is nCr(n_lines, w)
             # self.n_func_domain = factorial(len(self._selectors_q)) / factorial(
             #     self._w) / factorial(len(self._selectors_q) - self._w)
             self.circuit.add_register(self._selectors_q)
-            self.circuit.add_register(self._benes_flip_q)
-            self.inversion_about_zero_qubits = self._benes_flip_q
+            self.circuit.add_register(self._butterfly_flip_q)
+            self.inversion_about_zero_qubits = self._butterfly_flip_q
             # Flip right state
             qubits_involved_in_multicontrols.append(len(self.sum_q[1:]))
-            self.to_measure = [qr for qr in self._benes_flip_q
+            self.to_measure = [qr for qr in self._butterfly_flip_q
                                ] + [qr for qr in self._selectors_q]
         elif self.nwr_mode == self.NWR_FPC:
             self._fpc_dict = hwc.get_circuit_for_qubits_weight_get_pattern(
@@ -127,8 +127,8 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
     def prepare_input(self):
         # _logger.debug("Here")
         #self.circuit.barrier()
-        if self.nwr_mode == self.NWR_BENES:
-            self.circuit.h(self._benes_flip_q)
+        if self.nwr_mode == self.NWR_BUTTERFLY:
+            self.circuit.h(self._butterfly_flip_q)
             self._hamming_weight_selectors_generate()
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.h(self._selectors_q)
@@ -137,22 +137,22 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
     def prepare_input_i(self):
         # _logger.debug("Here")
         #self.circuit.barrier()
-        if self.nwr_mode == self.NWR_BENES:
+        if self.nwr_mode == self.NWR_BUTTERFLY:
             self._hamming_weight_selectors_generate_i()
-            self.circuit.h(self._benes_flip_q)
+            self.circuit.h(self._butterfly_flip_q)
         elif self.nwr_mode == self.NWR_FPC:
             self.circuit.h(self._selectors_q)
         #self.circuit.barrier()
 
     def _hamming_weight_selectors_generate(self):
-        hwg.generate_qubits_with_given_weight_benes(
-            self.circuit, self._selectors_q, self._benes_flip_q,
-            self._benes_dict)
+        hwg.generate_qubits_with_given_weight_butterfly(
+            self.circuit, self._selectors_q, self._butterfly_flip_q,
+            self._butterfly_dict)
 
     def _hamming_weight_selectors_generate_i(self):
-        hwg.generate_qubits_with_given_weight_benes_i(
-            self.circuit, self._selectors_q, self._benes_flip_q,
-            self._benes_dict)
+        hwg.generate_qubits_with_given_weight_butterfly_i(
+            self.circuit, self._selectors_q, self._butterfly_flip_q,
+            self._butterfly_dict)
 
     def _hamming_weight_selectors_check(self):
         # _logger.debug("Here")
@@ -220,7 +220,7 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
     def _flip_correct_state(self):
         # _logger.debug("Here")
         #self.circuit.barrier()
-        if self.nwr_mode == self.NWR_BENES:
+        if self.nwr_mode == self.NWR_BUTTERFLY:
             controls_q = self.sum_q[1:]
             to_invert_q = self.sum_q[0]
         elif self.nwr_mode == self.NWR_FPC:
@@ -236,7 +236,7 @@ class BruteforceISDCircuit(ISDAbstractCircuit):
 
     def oracle(self):
         # _logger.debug("Here")
-        if self.nwr_mode == self.NWR_BENES:
+        if self.nwr_mode == self.NWR_BUTTERFLY:
             self._matrix2gates()
             self._syndrome2gates()
             self._flip_correct_state()

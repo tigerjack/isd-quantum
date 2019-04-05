@@ -36,12 +36,12 @@ class BruteforceAlg(ISDAbstractAlg):
         # alg_result = self.run_circuit_on_backend(bruci.circuit, backend, shots)
         # alg_result.rounds = rounds
         # counts = alg_result.qiskit_result.get_counts()
-        if self.nwr_mode == BruteforceISDCircuit.NWR_BENES:
+        if self.nwr_mode == BruteforceISDCircuit.NWR_BUTTERFLY:
             per_reg_c = qiskit_support.from_global_counts_to_per_register_count(
-                counts, len(bruci._benes_flip_q), len(bruci._selectors_q))
+                counts, len(bruci._butterfly_flip_q), len(bruci._selectors_q))
             logger.debug("Per register count\n{}".format(per_reg_c))
             per_reg_p = qiskit_support.from_global_counts_to_per_register_prob(
-                counts, len(bruci._benes_flip_q), len(bruci._selectors_q))
+                counts, len(bruci._butterfly_flip_q), len(bruci._selectors_q))
             logger.debug("Per register prob\n{}".format(per_reg_p))
             flips_accuracy, flips_state = qiskit_support.from_register_prob_to_state(
                 per_reg_p[0])
@@ -53,7 +53,7 @@ class BruteforceAlg(ISDAbstractAlg):
                 flips_accuracy, flips_state))
             if '?' in selectors_state:
                 selectors_generated_state = hwg.generate_bits_from_flip_states(
-                    bruci._benes_dict, per_reg_p[0])
+                    bruci._butterfly_dict, per_reg_p[0])
                 logger.debug(
                     "selectors state generated from flip is {}".format(
                         selectors_generated_state))

@@ -7,9 +7,9 @@ _logger = logging.getLogger(__name__)
 
 # Global: circuit, ancillas_list, inversion_qubits, n_func_domain, to_measure, rounds
 class ISDAbstractCircuit(ABC):
-    NWR_BENES = 'benes'
+    NWR_BUTTERFLY = 'butterfly'
     NWR_FPC = 'fpc'
-    NWR_MODES = (NWR_BENES, NWR_FPC)
+    NWR_MODES = (NWR_BUTTERFLY, NWR_FPC)
     MCT_ADVANCED = 'advanced'
     MCT_BASIC = 'basic'
     MCT_NOANCILLA = 'noancilla'

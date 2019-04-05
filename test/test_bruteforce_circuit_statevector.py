@@ -104,9 +104,9 @@ class BruteforceCircuitTest(AlgTestCase):
         # 33 qubits needed, 32 available
         # ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_brute_basic_benes(self, name, n, k, d, w):
-        self.common(n, k, d, w, 'basic', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_brute_basic_butterfly(self, name, n, k, d, w):
+        self.common(n, k, d, w, 'basic', 'butterfly')
 
     @parameterized.expand([
         ("n4_k1_d4_w1", 4, 1, 4, 1),
@@ -115,6 +115,6 @@ class BruteforceCircuitTest(AlgTestCase):
         ("n8_k4_d4_w2", 8, 4, 4, 2),
         ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_brute_advanced_benes(self, name, n, k, d, w):
-        self.common(n, k, d, w, 'advanced', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_brute_advanced_butterfly(self, name, n, k, d, w):
+        self.common(n, k, d, w, 'advanced', 'butterfly')

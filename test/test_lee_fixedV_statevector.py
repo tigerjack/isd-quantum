@@ -114,9 +114,9 @@ class LeeBrickellCircuitTest(AlgTestCase):
         # No combination is possible
         # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_fixed_v_basic_benes(self, name, n, k, d, w, p):
-        self.common(n, k, d, w, p, 'basic', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_fixed_v_basic_butterfly(self, name, n, k, d, w, p):
+        self.common(n, k, d, w, p, 'basic', 'butterfly')
 
     @parameterized.expand([
         ("n7_k4_d3_w1_p1", 7, 4, 3, 1, 1),
@@ -127,6 +127,6 @@ class LeeBrickellCircuitTest(AlgTestCase):
         # No combination is possible
         # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_fixed_v_advanced_benes(self, name, n, k, d, w, p):
-        self.common(n, k, d, w, p, 'advanced', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_fixed_v_advanced_butterfly(self, name, n, k, d, w, p):
+        self.common(n, k, d, w, p, 'advanced', 'butterfly')

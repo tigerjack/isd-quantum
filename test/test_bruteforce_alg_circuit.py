@@ -71,16 +71,16 @@ class BruteforceAlgTest(AlgTestCase):
     @parameterized.expand([
         ("n4_k1_d4_w1", 4, 1, 4, 1),
     ])
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_brute_basic_benes(self, name, n, k, d, w):
-        self.common(name, n, k, d, w, 'basic', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_brute_basic_butterfly(self, name, n, k, d, w):
+        self.common(name, n, k, d, w, 'basic', 'butterfly')
 
     @parameterized.expand([
         ("n4_k1_d4_w1", 4, 1, 4, 1),
     ])
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_brute_advanced_benes(self, name, n, k, d, w):
-        self.common(name, n, k, d, w, 'advanced', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_brute_advanced_butterfly(self, name, n, k, d, w):
+        self.common(name, n, k, d, w, 'advanced', 'butterfly')
 
     @parameterized.expand([
         ("n7_k4_d3_w1", 7, 4, 3, 1),
@@ -112,9 +112,9 @@ class BruteforceAlgTest(AlgTestCase):
         # ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
     @unittest.skipIf(not AlgTestCase.SLOW_TEST, "Skipped slow test")
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_brute_basic_benes_slow(self, name, n, k, d, w):
-        self.common(name, n, k, d, w, 'basic', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_brute_basic_butterfly_slow(self, name, n, k, d, w):
+        self.common(name, n, k, d, w, 'basic', 'butterfly')
 
     @parameterized.expand([
         ("n7_k4_d3_w1", 7, 4, 3, 1),
@@ -123,6 +123,6 @@ class BruteforceAlgTest(AlgTestCase):
         ("n8_k2_d5_w3", 8, 2, 5, 3),
     ])
     @unittest.skipIf(not AlgTestCase.SLOW_TEST, "Skipped slow test")
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_brute_advanced_benes_slow(self, name, n, k, d, w):
-        self.common(name, n, k, d, w, 'advanced', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_brute_advanced_butterfly_slow(self, name, n, k, d, w):
+        self.common(name, n, k, d, w, 'advanced', 'butterfly')

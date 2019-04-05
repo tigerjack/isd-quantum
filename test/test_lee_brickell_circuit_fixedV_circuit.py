@@ -66,14 +66,14 @@ class LeeBrickellCircuitTest(AlgTestCase):
                 result = self.execute_qasm(qc, shots=shots)
                 counts = result.get_counts()
                 # self.logger.debug(counts)
-                if nwr_mode == LeeBrickellCircuit.NWR_BENES:
+                if nwr_mode == LeeBrickellCircuit.NWR_BUTTERFLY:
                     per_reg_c = qiskit_support.from_global_counts_to_per_register_count(
-                        counts, len(quantum_lee._benes_flip_q),
+                        counts, len(quantum_lee._butterfly_flip_q),
                         len(quantum_lee._selectors_q))
                     self.logger.debug(
                         "Per register count\n{}".format(per_reg_c))
                     per_reg_p = qiskit_support.from_global_counts_to_per_register_prob(
-                        counts, len(quantum_lee._benes_flip_q),
+                        counts, len(quantum_lee._butterfly_flip_q),
                         len(quantum_lee._selectors_q))
                     self.logger.debug(
                         "Per register prob\n{}".format(per_reg_p))
@@ -88,7 +88,7 @@ class LeeBrickellCircuitTest(AlgTestCase):
                         flips_accuracy, flips_state))
                     if '?' in selectors_state:
                         selectors_generated_state = hwg.generate_bits_from_flip_states(
-                            quantum_lee._benes_dict, per_reg_p[0])
+                            quantum_lee._butterfly_dict, per_reg_p[0])
                         self.logger.debug(
                             "selectors state generated from flip is {}".format(
                                 selectors_generated_state))
@@ -173,9 +173,9 @@ class LeeBrickellCircuitTest(AlgTestCase):
         # No combination is possible
         # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_fixed_v_basic_benes(self, name, n, k, d, w, p):
-        self.common(n, k, d, w, p, 'basic', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_fixed_v_basic_butterfly(self, name, n, k, d, w, p):
+        self.common(n, k, d, w, p, 'basic', 'butterfly')
 
     @parameterized.expand([
         ("n8_k4_d4_w2_p1", 8, 4, 4, 2, 1),
@@ -184,6 +184,6 @@ class LeeBrickellCircuitTest(AlgTestCase):
         # No combination is possible
         # ("n8_k2_d5_w3_p2", 8, 2, 5, 3, 2),
     ])
-    @unittest.skipIf(not AlgTestCase.BENES_ON, "Skipped benes")
-    def test_fixed_v_advanced_benes(self, name, n, k, d, w, p):
-        self.common(n, k, d, w, p, 'advanced', 'benes')
+    @unittest.skipIf(not AlgTestCase.BUTTERFLY_ON, "Skipped butterfly")
+    def test_fixed_v_advanced_butterfly(self, name, n, k, d, w, p):
+        self.common(n, k, d, w, p, 'advanced', 'butterfly')

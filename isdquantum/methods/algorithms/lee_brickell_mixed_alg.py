@@ -45,13 +45,13 @@ class LeeBrickellMixedAlg(ISDAbstractAlg):
             result = qiskit_support.run(qc, backend, shots=shots)
             counts = result.get_counts(qc)
 
-            if self.nwr_mode == LeeBrickellCircuit.NWR_BENES:
+            if self.nwr_mode == LeeBrickellCircuit.NWR_BUTTERFLY:
                 per_reg_c = qiskit_support.from_global_counts_to_per_register_count(
-                    counts, len(lee_circ._benes_flip_q),
+                    counts, len(lee_circ._butterfly_flip_q),
                     len(lee_circ._selectors_q))
                 logger.debug("Per register count\n{}".format(per_reg_c))
                 per_reg_p = qiskit_support.from_global_counts_to_per_register_prob(
-                    counts, len(lee_circ._benes_flip_q),
+                    counts, len(lee_circ._butterfly_flip_q),
                     len(lee_circ._selectors_q))
                 logger.debug("Per register prob\n{}".format(per_reg_p))
                 flips_accuracy, flips_state = qiskit_support.from_register_prob_to_state(
@@ -64,7 +64,7 @@ class LeeBrickellMixedAlg(ISDAbstractAlg):
                     flips_accuracy, flips_state))
                 if '?' in selectors_state:
                     selectors_generated_state = hwg.generate_bits_from_flip_states(
-                        lee_circ._benes_dict, per_reg_p[0])
+                        lee_circ._butterfly_dict, per_reg_p[0])
                     logger.debug(
                         "selectors state generated from flip is {}".format(
                             selectors_generated_state))
